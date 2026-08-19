@@ -58,6 +58,8 @@ flowchart TD
 
 기술 선택의 상세 트레이드오프는 [`docs/architecture_decision_record.md`](docs/architecture_decision_record.md)에 정리되어 있습니다.
 
+전체 흐름을 시각화한 아키텍처 다이어그램은 [`docs/diagrams/architecture-diagram-v1.html`](docs/diagrams/architecture-diagram-v1.html)에서 확인할 수 있습니다.
+
 ## 4. 현재 상태 / 다음 단계
 
 - 합성 데이터 생성기, golden set 검증, GCS Raw Zone(로컬 에뮬레이션) Parquet 저장까지 완료했습니다 (`data/raw/<platform>/`, tier 5단+null/unknown 예외, 실 플랫폼 7종).
@@ -79,4 +81,5 @@ data/synthetic/
 docs/
   architecture_decision_record.md
   golden-set/real-postings-golden-set.csv
+  diagrams/architecture-diagram-v1.html
 ```
