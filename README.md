@@ -59,20 +59,22 @@ flowchart TD
 
 ## 4. 현재 상태 / 다음 단계
 
-- 합성 데이터 생성기와 golden set 검증까지 완료했습니다 (`data/synthetic/`).
-- Spark 정규화, dbt 모델링, Airflow DAG, DWH 적재는 이후 세션에서 구축 예정입니다. 이 문서는 1차시 과제(주제·데이터셋 선정) 범위의 초안입니다.
+- 합성 데이터 생성기, golden set 검증, GCS Raw Zone(로컬 에뮬레이션) Parquet 저장까지 완료했습니다 (`data/raw/<platform>/`, tier 5단+null/unknown 예외, 실 플랫폼 7종).
+- posting_id는 `sha256(source_platform + source_posting_id)` 결정적 해시로 생성해 BigQuery MERGE 키로 그대로 씁니다.
+- Spark 정규화(Canonical Schema 매핑), dbt 모델링, Airflow DAG, BigQuery 적재는 이후 세션에서 구축 예정입니다.
 
 ## 저장소 구조
 
 ```
-requirements.txt              # Faker==40.31.0
+requirements.txt              # Faker, pandas, pyarrow
 ingestion/
   generate_synthetic_postings.py
   synth_rules.py
   verify_coverage.py
+data/raw/                     # GCS Raw Zone 로컬 에뮬레이션 (플랫폼별 디렉토리, Parquet)
+  hrmos/ doda/ geekly/ openwork/ mid_tenshoku/ talentio/ company_site/
 data/synthetic/
-  source_a.csv / source_b.csv / source_c.csv
-  ground_truth.csv
+  ground_truth.csv            # 매칭 정답지 (role_id/posting_id/tier/company 등)
 docs/
   architecture_decision_record.md
   golden-set/real-postings-golden-set.csv

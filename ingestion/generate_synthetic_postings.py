@@ -1,16 +1,24 @@
 """Generate synthetic Japanese job postings for job-data-foundry ingestion-volume testing.
 
-Two-layer generation: role axis (job family / company / tier, drawn independently of
-the golden set) x pattern axis (field-name / salary-type / coverage-gap / tier-blend,
-reverse-engineered from docs/golden-set/real-postings-golden-set.csv).
+Two-layer generation: role axis (job family / company / tier / location, drawn
+independently of the golden set) x pattern axis (field-name / salary-type /
+coverage-gap / tier-blend, reverse-engineered from
+docs/golden-set/real-postings-golden-set.csv), rendered per real platform
+(PLATFORM_PROFILES) instead of anonymous source_a/b/c.
+
+posting_id = sha256(source_platform + source_posting_id) — deterministic, so re-running
+the generator with the same SEED reproduces identical IDs (BigQuery MERGE key).
 
 Usage: python ingestion/generate_synthetic_postings.py
-Output: data/synthetic/source_a.csv, source_b.csv, source_c.csv, ground_truth.csv
+Output: data/raw/<platform>/<platform>.parquet (GCS Raw Zone, local emulation)
+        data/synthetic/ground_truth.csv (answer key for downstream matching/verify)
 """
-import csv
+import hashlib
 import random
+from datetime import date, timedelta
 from pathlib import Path
 
+import pandas as pd
 from faker import Faker
 
 from synth_rules import (
@@ -19,12 +27,16 @@ from synth_rules import (
     EMPLOYMENT_TYPE,
     FIELD_NAME_VARIANTS,
     JOB_FAMILY_GROUPS,
+    LOCATION_POOL,
+    PLATFORM_PROFILES,
     PREFERRED_REQUIREMENT_POOL,
     SALARY_BANDS_MAN_YEN,
     SALARY_TYPE_FORMATS,
     SENIORITY_TIERS,
     TIER_BLEND_NEIGHBORS,
     TIER_BLEND_RATE,
+    TIER_EXCEPTION_RATE,
+    TIER_EXCEPTIONS,
     TIER_THRESHOLD_PHRASES,
 )
 
@@ -32,21 +44,13 @@ N_ROLES = 160
 N_NEGATIVE = 15
 SEED = 42
 
-OUT_DIR = Path(__file__).resolve().parent.parent / "data" / "synthetic"
-
-SOURCE_A_FIELDS = [
-    "job_title", "company_name", "salary_range_text", "description_text",
-    "requirements_text", "preferred_text", "employment_type", "posting_id",
-]
-SOURCE_B_FIELDS = [
-    "position_name", "employer", "comp_text", "duties_text",
-    "must_have_text", "nice_to_have_text", "emp_type", "posting_ref",
-]
-SOURCE_C_FIELDS = ["company", "description_blob", "ref_id"]
+REPO_ROOT = Path(__file__).resolve().parent.parent
+RAW_DIR = REPO_ROOT / "data" / "raw"  # GCS Raw Zone stand-in: bucket/<platform>/*.parquet
+GROUND_TRUTH_DIR = REPO_ROOT / "data" / "synthetic"
 
 GROUND_TRUTH_FIELDS = [
-    "role_id", "posting_id", "source", "job_family_group", "title", "seniority_tier",
-    "company", "salary_min", "salary_max", "salary_type",
+    "role_id", "posting_id", "source_platform", "job_family_group", "title", "tier",
+    "company", "location", "salary_min", "salary_max", "salary_type",
     "is_negative_control", "tier_blended", "coverage_gap_applied",
 ]
 
@@ -59,11 +63,13 @@ def make_unique_company(fake, used):
             return name
 
 
+def pick_location():
+    return random.choices(list(LOCATION_POOL), weights=list(LOCATION_POOL.values()))[0]
+
+
 def build_role_catalog(fake, n_roles, used_companies):
     roles = []
     for role_id in range(n_roles):
-        # pick the group first (not a flat pool of all titles) so every group gets
-        # roughly equal representation regardless of how many titles it lists
         group = random.choice(list(JOB_FAMILY_GROUPS))
         title = random.choice(JOB_FAMILY_GROUPS[group])
         tier = random.choice(SENIORITY_TIERS)
@@ -75,10 +81,31 @@ def build_role_catalog(fake, n_roles, used_companies):
             "role_id": str(role_id),
             "job_family_group": group,
             "title": title,
-            "seniority_tier": tier,
+            "tier": tier,
             "company": make_unique_company(fake, used_companies),
+            "location": pick_location(),
             "salary_min": salary_min,
             "salary_max": salary_max,
+        })
+    return roles
+
+
+def build_tier_exception_roles(fake, n_roles, used_companies):
+    """null/unknown tier roles — separate exception path, not mixed into the normal
+    tier/salary-band distribution (2026-08-18 delta 1)."""
+    roles = []
+    for i in range(n_roles):
+        group = random.choice(list(JOB_FAMILY_GROUPS))
+        title = random.choice(JOB_FAMILY_GROUPS[group])
+        roles.append({
+            "role_id": f"tierexc-{i}",
+            "job_family_group": group,
+            "title": title,
+            "tier": random.choice(TIER_EXCEPTIONS),
+            "company": make_unique_company(fake, used_companies),
+            "location": pick_location(),
+            "salary_min": None,
+            "salary_max": None,
         })
     return roles
 
@@ -91,8 +118,9 @@ def build_negative_roles(fake, n_negative, roles, used_companies):
             "role_id": f"neg-{i}",
             "job_family_group": template["job_family_group"],
             "title": template["title"],
-            "seniority_tier": template["seniority_tier"],
+            "tier": template["tier"],
             "company": make_unique_company(fake, used_companies),  # forced different company
+            "location": pick_location(),  # independent location, same overlap pattern as golden-set case 5
             "salary_min": template["salary_min"],
             "salary_max": template["salary_max"],
         })
@@ -100,7 +128,9 @@ def build_negative_roles(fake, n_negative, roles, used_companies):
 
 
 def render_requirements(role):
-    tier = role["seniority_tier"]
+    tier = role["tier"]
+    if tier not in TIER_THRESHOLD_PHRASES:  # null/unknown exception roles
+        return "", False
     phrase = random.choice(TIER_THRESHOLD_PHRASES[tier])
     if random.random() < TIER_BLEND_RATE:
         neighbor = TIER_BLEND_NEIGHBORS[tier]
@@ -118,86 +148,62 @@ def render_preferred(role):
     return lines, gap_applied
 
 
-def make_variant(role, variant_idx, is_negative=False):
-    salary_type = random.choice(list(SALARY_TYPE_FORMATS))
-    salary_text = SALARY_TYPE_FORMATS[salary_type].format(
-        min=role["salary_min"], max=role["salary_max"],
-        min_m=round(role["salary_min"] / 12), max_m=round(role["salary_max"] / 12),
-    )
+def make_variant(role, variant_idx, platform, is_negative=False):
+    if role["salary_min"] is None:
+        salary_type, salary_text = "", ""
+    else:
+        salary_type = random.choice(list(SALARY_TYPE_FORMATS))
+        salary_text = SALARY_TYPE_FORMATS[salary_type].format(
+            min=role["salary_min"], max=role["salary_max"],
+            min_m=round(role["salary_min"] / 12), max_m=round(role["salary_max"] / 12),
+        )
     requirements_text, tier_blended = render_requirements(role)
     preferred_lines, coverage_gap_applied = render_preferred(role)
+
+    profile = PLATFORM_PROFILES[platform]
+    source_posting_id = f"{platform}-{role['role_id']}-{variant_idx}"
+    posting_id = hashlib.sha256(f"{platform}{source_posting_id}".encode()).hexdigest()
+
+    if random.random() < profile["posted_at_rate"]:
+        posted_at = (date(2026, 1, 1) + timedelta(days=random.randint(0, 230))).isoformat()
+    else:
+        posted_at = None
+    agency = "エージェント経由" if random.random() < profile["agency_rate"] else None
+    if random.random() < profile["salary_blank_rate"]:
+        salary_text = ""  # platform-side omission, independent of tier-exception blanks
+
     return {
-        "posting_id": f"{role['role_id']}-{variant_idx}",
+        "posting_id": posting_id,
+        "source_posting_id": source_posting_id,
+        "source_platform": platform,
         "role_id": role["role_id"],
-        "company": role["company"],
-        "title": role["title"],
+        "company_name": role["company"],
+        "raw_title": role["title"],
         "job_family_group": role["job_family_group"],
-        "seniority_tier": role["seniority_tier"],
+        "tier": role["tier"],
+        "location_raw": f"{random.choice(FIELD_NAME_VARIANTS['location'])}：{role['location']}",
+        "location": role["location"],
         "salary_min": role["salary_min"],
         "salary_max": role["salary_max"],
         "salary_type": salary_type,
         "salary_text": salary_text,
         "employment_type": EMPLOYMENT_TYPE,
-        "job_description_field_name": random.choice(FIELD_NAME_VARIANTS["job_description"]),
-        "requirements_field_name": random.choice(FIELD_NAME_VARIANTS["requirements"]),
-        "requirements_text": requirements_text,
-        "preferred_field_name": random.choice(FIELD_NAME_VARIANTS["preferred"]),
-        "preferred_text": "、".join(preferred_lines),
+        "agency": agency,
+        "posted_at": posted_at,
+        "description_raw": (
+            f"{random.choice(FIELD_NAME_VARIANTS['job_description'])}："
+            f"{role['title']}としてご活躍いただきます。"
+        ),
+        "requirements_raw": (
+            f"{random.choice(FIELD_NAME_VARIANTS['requirements'])}：{requirements_text}"
+        ),
+        "preferred_raw": (
+            f"{random.choice(FIELD_NAME_VARIANTS['preferred'])}：{'、'.join(preferred_lines)}"
+        ),
         "is_negative_control": is_negative,
         "tier_blended": tier_blended,
         "coverage_gap_applied": coverage_gap_applied,
     }
-
-
-def serialize_source_a(p):
-    return {
-        "job_title": p["title"],
-        "company_name": p["company"],
-        "salary_range_text": p["salary_text"],
-        "description_text": f"{p['job_description_field_name']}：{p['title']}としてご活躍いただきます。",
-        "requirements_text": f"{p['requirements_field_name']}：{p['requirements_text']}",
-        "preferred_text": f"{p['preferred_field_name']}：{p['preferred_text']}",
-        "employment_type": p["employment_type"],
-        "posting_id": p["posting_id"],
-    }
-
-
-def serialize_source_b(p):
-    return {
-        "position_name": p["title"],
-        "employer": p["company"],
-        "comp_text": p["salary_text"],
-        "duties_text": f"{p['job_description_field_name']}：{p['title']}に関する業務全般。",
-        "must_have_text": f"{p['requirements_field_name']}：{p['requirements_text']}",
-        "nice_to_have_text": f"{p['preferred_field_name']}：{p['preferred_text']}",
-        "emp_type": p["employment_type"],
-        "posting_ref": p["posting_id"],
-    }
-
-
-def serialize_source_c(p):
-    blob = (
-        f"【{p['title']}】{p['company']}\n"
-        f"{p['job_description_field_name']}：{p['title']}としてご活躍いただきます。\n"
-        f"{p['requirements_field_name']}：{p['requirements_text']}\n"
-        f"{p['preferred_field_name']}：{p['preferred_text']}\n"
-        f"給与：{p['salary_text']}　雇用形態：{p['employment_type']}"
-    )
-    return {"company": p["company"], "description_blob": blob, "ref_id": p["posting_id"]}
-
-
-SERIALIZERS = [
-    ("source_a", serialize_source_a, SOURCE_A_FIELDS),
-    ("source_b", serialize_source_b, SOURCE_B_FIELDS),
-    ("source_c", serialize_source_c, SOURCE_C_FIELDS),
-]
-
-
-def write_csv(path, rows, fieldnames):
-    with path.open("w", newline="", encoding="utf-8-sig") as f:
-        w = csv.DictWriter(f, fieldnames=fieldnames)
-        w.writeheader()
-        w.writerows(rows)
 
 
 def main():
@@ -206,42 +212,52 @@ def main():
     Faker.seed(SEED)
     used_companies = set()
 
+    n_tier_exceptions = max(1, round(N_ROLES * TIER_EXCEPTION_RATE))
     roles = build_role_catalog(fake, N_ROLES, used_companies)
+    roles += build_tier_exception_roles(fake, n_tier_exceptions, used_companies)
     negatives = build_negative_roles(fake, N_NEGATIVE, roles, used_companies)
 
+    platforms = list(PLATFORM_PROFILES)
     postings = []
     for role in roles:
-        for v in range(random.randint(2, 5)):  # mirrors golden-set group sizes (2,5,7,4)
-            postings.append(make_variant(role, v))
+        for v in range(random.randint(2, 5)):  # mirrors golden-set group sizes
+            platform = random.choice(platforms)
+            postings.append(make_variant(role, v, platform))
     for role in negatives:
-        postings.append(make_variant(role, 0, is_negative=True))
+        platform = random.choice(platforms)
+        postings.append(make_variant(role, 0, platform, is_negative=True))
 
-    random.shuffle(postings)  # source assignment shouldn't correlate with generation order
+    random.shuffle(postings)
 
-    OUT_DIR.mkdir(parents=True, exist_ok=True)
-    sources = {name: [] for name, _, _ in SERIALIZERS}
+    rows_by_platform = {p: [] for p in platforms}
     ground_truth_rows = []
-
-    for i, p in enumerate(postings):
-        source_name, serializer, _ = SERIALIZERS[i % 3]
-        sources[source_name].append(serializer(p))
+    for p in postings:
+        rows_by_platform[p["source_platform"]].append(p)
         ground_truth_rows.append({
-            "role_id": p["role_id"], "posting_id": p["posting_id"], "source": source_name,
-            "job_family_group": p["job_family_group"], "title": p["title"],
-            "seniority_tier": p["seniority_tier"], "company": p["company"],
+            "role_id": p["role_id"], "posting_id": p["posting_id"],
+            "source_platform": p["source_platform"],
+            "job_family_group": p["job_family_group"], "title": p["raw_title"],
+            "tier": p["tier"], "company": p["company_name"], "location": p["location"],
             "salary_min": p["salary_min"], "salary_max": p["salary_max"],
             "salary_type": p["salary_type"], "is_negative_control": p["is_negative_control"],
             "tier_blended": p["tier_blended"], "coverage_gap_applied": p["coverage_gap_applied"],
         })
 
-    for name, _, fields in SERIALIZERS:
-        write_csv(OUT_DIR / f"{name}.csv", sources[name], fields)
-    write_csv(OUT_DIR / "ground_truth.csv", ground_truth_rows, GROUND_TRUTH_FIELDS)
+    RAW_DIR.mkdir(parents=True, exist_ok=True)
+    for platform, rows in rows_by_platform.items():
+        platform_dir = RAW_DIR / platform
+        platform_dir.mkdir(parents=True, exist_ok=True)
+        pd.DataFrame(rows).to_parquet(platform_dir / f"{platform}.parquet", index=False)
+
+    GROUND_TRUTH_DIR.mkdir(parents=True, exist_ok=True)
+    pd.DataFrame(ground_truth_rows, columns=GROUND_TRUTH_FIELDS).to_csv(
+        GROUND_TRUTH_DIR / "ground_truth.csv", index=False, encoding="utf-8-sig",
+    )
 
     print(f"roles={len(roles)} negatives={len(negatives)} postings={len(postings)}")
-    for name, _, _ in SERIALIZERS:
-        print(f"{name}: {len(sources[name])} rows")
-    print(f"ground_truth: {len(ground_truth_rows)} rows -> {OUT_DIR}")
+    for platform, rows in rows_by_platform.items():
+        print(f"{platform}: {len(rows)} rows -> {RAW_DIR / platform}")
+    print(f"ground_truth: {len(ground_truth_rows)} rows -> {GROUND_TRUTH_DIR}")
 
 
 if __name__ == "__main__":

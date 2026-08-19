@@ -1,6 +1,7 @@
 """Self-check: assert the generated synthetic dataset (data/synthetic/ground_truth.csv)
 has enough diversity across the role/pattern axes to avoid collapsing onto the golden
-set's 3 companies. Run after generate_synthetic_postings.py.
+set's companies. Run after generate_synthetic_postings.py, on the raw (pre-Spark)
+output — normalization would erase the platform-side variation this checks for.
 
 Usage: python ingestion/verify_coverage.py
 """
@@ -8,18 +9,23 @@ import csv
 from collections import Counter, defaultdict
 from pathlib import Path
 
+from synth_rules import PLATFORM_PROFILES, SENIORITY_TIERS, TIER_EXCEPTIONS
+
 GT_PATH = Path(__file__).resolve().parent.parent / "data" / "synthetic" / "ground_truth.csv"
 
 ALL_GROUPS = {
     "software_development", "infrastructure_platform", "data_ai",
     "security_qa", "architecture_consulting", "corporate_it_support",
 }
+ALL_TIERS = set(SENIORITY_TIERS)
+ALL_PLATFORMS = set(PLATFORM_PROFILES)
 EXPECTED_SALARY_TYPES = {"年俸制", "月給+賞与制", "月給制"}
 
 MIN_DISTINCT_COMPANIES = 20
 MIN_TITLES_PER_GROUP = 3
 MIN_TIER_BLENDED = 5
 MIN_NEGATIVE_CONTROLS = 10
+MIN_TIER_EXCEPTIONS = 1
 MAX_COMPANY_SHARE = 0.15
 
 
@@ -52,7 +58,20 @@ def main():
         f"groups with too few distinct titles (< {MIN_TITLES_PER_GROUP}): {thin_groups}"
     )
 
-    salary_types = {r["salary_type"] for r in rows}
+    platforms = {r["source_platform"] for r in rows}
+    missing_platforms = ALL_PLATFORMS - platforms
+    assert not missing_platforms, f"platform(s) never generated: {missing_platforms}"
+
+    tiers = {r["tier"] for r in rows}
+    missing_tiers = ALL_TIERS - tiers
+    assert not missing_tiers, f"tier(s) never generated: {missing_tiers}"
+
+    exception_count = sum(1 for r in rows if r["tier"] in TIER_EXCEPTIONS)
+    assert exception_count >= MIN_TIER_EXCEPTIONS, (
+        f"only {exception_count} null/unknown tier rows, need >= {MIN_TIER_EXCEPTIONS}"
+    )
+
+    salary_types = {r["salary_type"] for r in rows} - {""}
     assert salary_types >= EXPECTED_SALARY_TYPES, f"missing salary_type(s): {EXPECTED_SALARY_TYPES - salary_types}"
 
     tier_blended_count = sum(1 for r in rows if r["tier_blended"] == "True")
@@ -67,8 +86,9 @@ def main():
 
     print(
         f"OK: {len(rows)} rows, {len(companies)} distinct companies, "
-        f"all {len(ALL_GROUPS)} groups covered, "
-        f"tier_blended={tier_blended_count}, negative_control={negative_count}"
+        f"all {len(ALL_GROUPS)} groups / {len(ALL_PLATFORMS)} platforms / {len(ALL_TIERS)} tiers covered, "
+        f"tier_exceptions={exception_count}, tier_blended={tier_blended_count}, "
+        f"negative_control={negative_count}"
     )
 
 
