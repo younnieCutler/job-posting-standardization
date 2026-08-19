@@ -76,12 +76,13 @@ dbt Cloud는 Managed Scheduler와 IDE를 제공하지만, 이 경우 오케스�
 
 ---
 
-## ADR-003: Snowflake vs BigQuery — DWH 선택 (미결정)
+## ADR-003: Snowflake vs BigQuery — DWH 선택
+
+> **[2026-08-18 확정]** 아래 §1은 원래 "미결정"으로 남겨뒀던 판본이다. Batch Ingestion 구조 확정 시점에 **BigQuery**로 결정했다 — Looker Studio 무료 네이티브 연동(§3 비교표 그대로), `posting_id`(`sha256(source_platform + source_posting_id)`) 단일 컬럼 MERGE로 idempotency를 구현하는 것도 BigQuery `MERGE` 문 기준으로 설계했다. §2~§3의 트레이드오프 비교는 그대로 유효하므로 남겨둔다.
 
 ### 1. 결정 (Decision)
 
-**현재 미결정(Pending)**. 파이프라인 코어 구현 완료 후 최종 선택 예정.  
-본 ADR은 의사결정 기준을 사전에 명확히 기록해두기 위해 작성한다.
+**BigQuery**. 위 갱신 노트 참고.
 
 ### 2. 맥락 (Context)
 
