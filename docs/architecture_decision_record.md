@@ -7,39 +7,48 @@ description: "JDF 프로젝트의 핵심 기술 선택(Spark vs DuckDB, dbt Core
 
 # Architecture Decision Record — Japan IT Job Market & Candidate Integration Foundry
 
-> 이 문서는 JDF(Job Data Foundry) 프로젝트에서 내린 주요 기술적 결정들을 **면접 방어 목적**으로 기록한 ADR(Architecture Decision Record)이다.  
+> 이 문서는 JDF(Job Data Foundry) 프로젝트에서 내린 주요 기술적 결정들을 **면접 방어 목적**으로 기록한 ADR(Architecture Decision Record)이다.
 > 각 항목은 "무엇을 선택했는가 → 왜 그 결정이 필요했는가 → 선택하지 않은 대안과의 트레이드오프"의 3단 구조로 기술한다.
 
 ---
 
 ## ADR-001: Spark vs DuckDB — 처리 엔진 선택
 
+> **[2026-08-19 범위 갱신]** 초기 설계의 후보자/PII 처리 범위는 인터뷰 이후 제거되었다. 현재 JDF는 일본 IT 구인공고 표준화에 한정하므로 Spark 선정 근거도 현재 파이프라인 기준으로 갱신한다.
+
 ### 1. 결정 (Decision)
 
-**Apache Spark를 PII 처리 구간의 변환 엔진으로 채택**하였다.  
-DuckDB는 분석 쿼리 레이어(EDA, 경량 집계)에만 보조적으로 사용한다.
+**Apache Spark를 Raw → Canonical 표준화 구간의 처리 엔진으로 채택**한다.
+v1은 Local Spark로 실행하고, 데이터 규모와 운영 요구가 커지면 Dataproc 또는 Serverless for Apache Spark 같은 Managed Spark(관리형 스파크) 환경으로 이전할 수 있게 설계한다.
 
 ### 2. 맥락 (Context)
 
-JDF 파이프라인에는 이력서, 후보자 식별 정보(성명, 생년월일, 연락처 등) 등의 **PII(Personally Identifiable Information)** 가 포함된 데이터가 흐른다. 이 PII 처리 구간을 DWH(Data Warehouse) 내부로 끌어들이면 다음과 같은 문제가 발생한다:
+JDF는 7개 채용 플랫폼(hrmos/doda/geekly/openwork/mid_tenshoku/talentio/company_site)의 서로 다른 Raw Schema(원본 스키마)를 하나의 Canonical Schema(표준 스키마)로 수렴시켜야 한다.
 
-- DWH 내 PII 잔류 → 접근 제어 복잡성 증가
-- PII가 분석 쿼리와 동일한 실행 컨텍스트를 공유 → 감사(Audit) 경계 불명확
-- 파이프라인 경계가 모호해져 데이터 거버넌스 설계가 불투명하게 보임 (면접 관점에서도 불리)
+Spark 구간에서는 다음과 같은 Raw 중심 Transformation(변환)을 담당한다:
 
-Spark를 DWH **이전(upstream)** 구간에 배치함으로써 **PII 처리 → 비식별화/마스킹 → 정제된 데이터만 DWH 적재**라는 명확한 보안 경계(Security Boundary)를 파이프라인 설계 수준에서 강제할 수 있다.
+- 플랫폼별 Schema Mapping(스키마 매핑)
+- 일본어 Character Normalization(문자 정규화, NFKC 등)
+- 급여·날짜·타입 Parsing(파싱)
+- Taxonomy Mapping(분류 매핑)
+- 중복 제거 및 Canonical Schema 검증
+
+목표 데이터 규모는 합성 Raw 데이터 약 1천만 건이며, 현재 규모에서는 단일 머신으로도 처리 가능할 수 있다. 그럼에도 Spark를 선택한 이유는 단순히 "1천만 건이라서"가 아니라, **같은 변환 코드를 Local(로컬)에서 개발한 뒤 필요 시 Distributed Compute(분산 처리) 환경으로 확장할 수 있는 경로를 확보하기 위해서**다.
+
+BigQuery 이후의 집계·Fact/Dimension·Data Mart(데이터 마트) 모델링은 dbt가 담당한다. 즉 Spark와 dbt의 Transformation 역할을 Raw 표준화와 Analytics Modeling(분석 모델링)으로 분리한다.
 
 ### 3. 트레이드오프 (Trade-offs)
 
 | 항목 | **Spark (선택)** | DuckDB (미선택) |
 |---|---|---|
-| **PII 격리** | DWH 외부에서 처리, 경계 명확 | 단일 프로세스 내 처리, 경계 불명확 |
-| **운영 복잡도** | Docker Compose로 클러스터 구성 필요 | 단일 바이너리, 운영 단순 |
-| **스케일** | 분산 처리 가능 (합성 데이터 규모에서는 과사양) | 단일 머신 최적화, 수십 GB까지 충분 |
-| **면접 서사** | "보안 경계 설계를 의도했다"는 이야기 가능 | 단순 비용 절감 결정으로만 읽힐 수 있음 |
-| **비용** | 로컬 Docker 기준 추가 컴퓨팅 자원 소모 | 거의 무비용 |
+| **확장성** | 동일 API로 Local → 분산 환경 확장 가능 | 단일 머신 처리에 최적화 |
+| **대용량 변환** | Partition(파티션) 기반 병렬 처리에 강함 | 단일 머신 내 처리 성능이 뛰어남 |
+| **GCP 연계** | GCS/BigQuery Connector(커넥터) 활용 가능 | 연계 가능하지만 주력 사용 방식은 아님 |
+| **운영 복잡도** | JVM·Spark 설정 등 관리 요소가 많음 | 단일 프로세스로 단순 |
+| **현재 데이터 규모** | v1에서는 다소 과할 수 있음 | 현재 규모만 보면 더 경제적일 수 있음 |
+| **확장 경로** | Dataproc/Serverless Spark로 이전 가능 | 규모 확대 시 처리 엔진 재검토 필요 |
 
-> **핵심**: 이 결정은 비용이나 스케일의 문제가 아니라, **파이프라인 설계에서 보안 경계를 어떻게 그을 것인가**의 문제다. Spark를 선택한 이유는 "PII를 DWH 밖에서 처리한다는 아키텍처 의도를 명시적으로 구현할 수 있기 때문"이다.
+> **핵심**: Spark는 Raw 데이터를 Canonical Schema로 표준화하는 upstream 처리 엔진이고, dbt는 BigQuery 적재 이후 Analytics Modeling을 담당한다. 현재는 Local Spark로 재현성을 확보하고, 실제 처리량이 증가하면 Managed Spark 환경으로 확장한다.
 
 ---
 
@@ -146,7 +155,7 @@ v7 트리밍 인터뷰(코드 0줄 상태에서 스코프부터 재점검)에서
 
 ### 1. 결정 (Decision)
 
-**Python `Faker` 라이브러리(ja_JP 로케일)를 사용한 합성 데이터**를 파이프라인의 주 데이터 소스로 채택한다.  
+**Python `Faker` 라이브러리(ja_JP 로케일)를 사용한 합성 데이터**를 파이프라인의 주 데이터 소스로 채택한다.
 실제 채용 사이트(doda, Green, Wantedly 등) 스크래핑은 수행하지 않는다.
 
 ### 2. 맥락 (Context)
