@@ -98,6 +98,11 @@ TIER_BLEND_RATE = 0.15
 BLOCKED_COMPANY_NAMES = {
     "NHNテコラス", "hokan", "ニジボックス",
     "ビズリーチ", "Ascent Business Consulting", "ABEJA", "アポロ",
+    "Japan Digital Design 株式会社", "ディップ株式会社", "ファンズ株式会社",
+    "株式会社MonotaRO", "株式会社Photosynth", "株式会社SmartHR",
+    "株式会社アプトポッド", "株式会社インテージテクノスフィア", "株式会社エクサ",
+    "株式会社サーバーワークス", "株式会社システナ", "株式会社ブシロード",
+    "株式会社マネーフォワード", "株式会社電通デジタル",
 }
 
 EMPLOYMENT_TYPE = "正社員"  # per user decision 2026-07-19: 정사원으로 충분함
