@@ -6,8 +6,11 @@ data/kafka_landed/postings.jsonl(Consumer 산출물)을 읽어
 
 Usage: python streaming/spark_preprocess.py
 """
+import os
 import unicodedata
 from pathlib import Path
+
+os.environ.pop("SPARK_HOME", None)  # stale local SPARK_HOME breaks pyspark's bundled spark-submit
 
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import udf
