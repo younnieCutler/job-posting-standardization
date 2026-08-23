@@ -101,6 +101,35 @@ python streaming/spark_preprocess.py    # jsonl -> Spark 배치 전처리 -> dat
 | is_negative_control | bool | 매칭 검증용 네거티브 샘플 여부 |
 | tier_blended / coverage_gap_applied | bool | 티어 혼합 / 표기 누락 패턴 적용 여부 |
 
+**Kafka 메시지 예시** (`data/kafka_landed/postings.jsonl` 1건)
+```json
+{
+  "posting_id": "6a48f7dd400bf0b401f760b370fe109534c7bdcd9695191b96b73f1f96de8fb0",
+  "source_posting_id": "company_site-113-0",
+  "source_platform": "company_site",
+  "role_id": "113",
+  "company_name": "合同会社木村電気",
+  "raw_title": "業務系SE",
+  "job_family_group": "software_development",
+  "tier": "mid",
+  "location_raw": "勤務地：大阪府",
+  "location": "大阪府",
+  "salary_min": 485.0,
+  "salary_max": 617.0,
+  "salary_type": "月給制",
+  "salary_text": "",
+  "employment_type": "正社員",
+  "agency": null,
+  "posted_at": null,
+  "description_raw": "職務内容：業務系SEとしてご活躍いただきます。",
+  "requirements_raw": "必須要件：SQL・データ抽出経験3年以上",
+  "preferred_raw": "求める経験・スキル：SQL実務経験、AWSまたはGCP実務経験、Python実務経験",
+  "is_negative_control": false,
+  "tier_blended": false,
+  "coverage_gap_applied": false
+}
+```
+
 **결과** (2026-08-23 로컬 실행 기준): Producer 전송 590건 = Consumer 수신 590건. Spark 전처리 전 590건 → 후 575건(negative_control 15건 제외, posting_id 중복 0건, raw_title NFKC 정규화 컬럼 추가).
 
 **저장 위치/포맷**
