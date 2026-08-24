@@ -1,6 +1,7 @@
 """Collect IT postings from public employer ATS APIs without HTML scraping."""
 import hashlib
 import html
+import random
 import re
 
 IT_KEYWORDS = (
@@ -44,3 +45,13 @@ def greenhouse_record(job, company):
 def is_it_record(record):
     searchable = record["search_text"].lower()
     return any(keyword in searchable for keyword in IT_KEYWORDS)
+
+
+def prepare_records(records, limit=None, seed=None):
+    rows = list({
+        (row["source_platform"], row["source_posting_id"]): row for row in records
+    }.values())
+    if limit is not None and limit < len(rows):
+        random.Random(seed).shuffle(rows)
+        rows = rows[:limit]
+    return sorted(rows, key=lambda row: (row["source_platform"], row["source_posting_id"]))
