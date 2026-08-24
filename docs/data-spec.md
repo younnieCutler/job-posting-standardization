@@ -1,5 +1,7 @@
 # JDF Data Specification
 
+**한국어 | [日本語](data-spec.ja.md)**
+
 JDF 파이프라인이 다루는 데이터의 스키마·ID 정책·저장 위치 명세다. 설계 근거는 [`architecture_decision_record.md`](architecture_decision_record.md), 실행 방법은 [`../README.md`](../README.md)를 본다.
 
 ## 1. 데이터 레이어

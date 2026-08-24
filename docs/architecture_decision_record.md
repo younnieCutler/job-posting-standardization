@@ -7,6 +7,8 @@ description: "JDF 프로젝트의 핵심 기술 선택(Spark vs DuckDB, dbt Core
 
 # Architecture Decision Record — Japan IT Job Market & Candidate Integration Foundry
 
+**한국어 | [日本語](architecture_decision_record.ja.md)**
+
 > 이 문서는 JDF(Job Data Foundry) 프로젝트에서 내린 주요 기술적 결정들을 **면접 방어 목적**으로 기록한 ADR(Architecture Decision Record)이다.
 > 각 항목은 "무엇을 선택했는가 → 왜 그 결정이 필요했는가 → 선택하지 않은 대안과의 트레이드오프"의 3단 구조로 기술한다.
 
