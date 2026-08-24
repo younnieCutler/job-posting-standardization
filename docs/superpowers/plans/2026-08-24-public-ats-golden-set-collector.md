@@ -47,4 +47,4 @@
 - [x] Add Greenhouse and SmartRecruiters URLs/parsers, a 1-second request delay, `--limit`, `--seed`, `--boards`, and output paths. `main()` records failed boards but returns success after producing available records.
 - [x] Add only manually checked employer-owned public boards to the CSV; document the command in README.
 - [x] Run `python -m unittest tests.test_collect_public_ats_postings -v` and `python -m py_compile ingestion/collect_public_ats_postings.py`; expect PASS with no compiler output.
-- [ ] Commit with `feat: collect public ATS golden-set postings`.
+- [x] Commit with `feat: collect public ATS golden-set postings`.
