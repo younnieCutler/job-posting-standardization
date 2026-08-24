@@ -1,4 +1,5 @@
 import unittest
+from urllib.error import URLError
 
 from ingestion import collect_public_ats_postings as collector
 
@@ -38,6 +39,15 @@ class CollectPublicAtsPostingsTests(unittest.TestCase):
 
         self.assertEqual(len(output), 2)
         self.assertEqual(len({row["source_posting_id"] for row in output}), 2)
+
+    def test_collect_board_records_captures_a_source_failure(self):
+        rows, failure = collector.collect_board_records(
+            {"ats": "greenhouse", "board": "bad", "company": "Example"},
+            fetch_json=lambda _: (_ for _ in ()).throw(URLError("offline")),
+        )
+
+        self.assertEqual(rows, [])
+        self.assertIn("offline", failure)
 
 
 if __name__ == "__main__":

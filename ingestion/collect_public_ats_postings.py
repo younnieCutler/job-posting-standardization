@@ -1,8 +1,18 @@
-"""Collect IT postings from public employer ATS APIs without HTML scraping."""
+"""Collect IT postings from public employer ATS APIs without HTML scraping.
+
+Usage: python ingestion/collect_public_ats_postings.py
+"""
+import argparse
+import csv
 import hashlib
 import html
+import json
 import random
 import re
+import time
+from datetime import datetime, timezone
+from pathlib import Path
+from urllib.request import Request, urlopen
 
 IT_KEYWORDS = (
     "engineer", "engineering", "developer", "software", "data", "analytics",
@@ -10,6 +20,14 @@ IT_KEYWORDS = (
     "エンジニア", "開発", "データ", "機械学習", "クラウド", "セキュリティ",
     "インフラ", "情報システム", "プロダクト",
 )
+FIELDS = (
+    "source_platform", "source_posting_id", "company_name", "title", "source_url",
+    "location", "department", "description", "source_record_sha256", "collected_at",
+)
+ROOT = Path(__file__).resolve().parent.parent
+DEFAULT_BOARDS = ROOT / "data" / "golden-set" / "public-ats-boards.csv"
+DEFAULT_OUTPUT = ROOT / "data" / "golden-set" / "public-it-postings.csv"
+DEFAULT_MANIFEST = ROOT / "data" / "golden-set" / "public-it-postings-manifest.json"
 
 
 def text(value):
@@ -55,3 +73,86 @@ def prepare_records(records, limit=None, seed=None):
         random.Random(seed).shuffle(rows)
         rows = rows[:limit]
     return sorted(rows, key=lambda row: (row["source_platform"], row["source_posting_id"]))
+
+
+def smartrecruiters_record(job, company):
+    return make_record(
+        "smartrecruiters", job["id"], company, job.get("name", ""), job.get("ref", ""),
+        job.get("location", {}).get("city", ""), [{"name": job.get("department", {}).get("label", "")}],
+        job.get("jobAd", {}).get("sections", {}).get("jobDescription", {}).get("text", ""),
+    )
+
+
+def board_url(board):
+    if board["ats"] == "greenhouse":
+        return f"https://boards-api.greenhouse.io/v1/boards/{board['board']}/jobs?content=true"
+    if board["ats"] == "smartrecruiters":
+        return f"https://api.smartrecruiters.com/v1/companies/{board['board']}/postings?limit=100"
+    raise ValueError(f"unsupported ATS: {board['ats']}")
+
+
+def fetch_json(url):
+    request = Request(url, headers={"User-Agent": "job-posting-standardization/1.0"})
+    with urlopen(request, timeout=30) as response:
+        return json.load(response)
+
+
+def parse_board(board, payload):
+    if board["ats"] == "greenhouse":
+        return [greenhouse_record(job, board["company"]) for job in payload["jobs"]]
+    return [smartrecruiters_record(job, board["company"]) for job in payload["content"]]
+
+
+def collect_board_records(board, fetch_json=fetch_json):
+    try:
+        records = parse_board(board, fetch_json(board_url(board)))
+        return [record for record in records if is_it_record(record)], None
+    except (OSError, ValueError, KeyError) as error:
+        return [], str(error)
+
+
+def read_boards(path):
+    with path.open(encoding="utf-8", newline="") as handle:
+        return list(csv.DictReader(handle))
+
+
+def write_output(records, output, manifest, failures, boards, limit, seed):
+    output.parent.mkdir(parents=True, exist_ok=True)
+    now = datetime.now(timezone.utc).isoformat()
+    for record in records:
+        record["collected_at"] = now
+    with output.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=FIELDS, extrasaction="ignore")
+        writer.writeheader()
+        writer.writerows(records)
+    manifest.write_text(json.dumps({
+        "collected_at": now, "boards_attempted": len(boards), "records_written": len(records),
+        "limit": limit, "seed": seed, "failures": failures,
+    }, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--boards", type=Path, default=DEFAULT_BOARDS)
+    parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
+    parser.add_argument("--manifest", type=Path, default=DEFAULT_MANIFEST)
+    parser.add_argument("--limit", type=int)
+    parser.add_argument("--seed", type=int, default=42)
+    args = parser.parse_args(argv)
+    if args.limit is not None and args.limit < 1:
+        parser.error("--limit must be positive")
+    boards, records, failures = read_boards(args.boards), [], {}
+    for index, board in enumerate(boards):
+        if index:
+            time.sleep(1)
+        found, failure = collect_board_records(board)
+        records.extend(found)
+        if failure:
+            failures[f"{board['ats']}:{board['board']}"] = failure
+    write_output(prepare_records(records, args.limit, args.seed), args.output, args.manifest,
+                 failures, boards, args.limit, args.seed)
+    print(f"wrote {len(prepare_records(records, args.limit, args.seed))} records; failures={len(failures)}")
+
+
+if __name__ == "__main__":
+    main()
