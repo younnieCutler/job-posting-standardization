@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Collect all IT postings from allowlisted employer ATS APIs without HTML scraping.
+**Goal:** Collect all IT postings from 300 employer ATS APIs without HTML scraping.
 
 **Architecture:** A standard-library Python script fetches Greenhouse and SmartRecruiters public JSON, normalizes records, filters IT work, deduplicates, then writes a CSV and manifest. Unit tests inject fixed HTTP payloads.
 
@@ -44,7 +44,7 @@
 
 - [x] Write a failing test where a `URLError("offline")` makes `collect_board_records()` return `([], "<error>")` instead of raising.
 - [x] Run that test; expect missing `collect_board_records`.
-- [x] Add Greenhouse and SmartRecruiters URLs/parsers, a 1-second request delay, `--limit`, `--seed`, `--boards`, and output paths. `main()` records failed boards but returns success after producing available records.
-- [x] Add only manually checked employer-owned public boards to the CSV; document the command in README.
+- [x] Add Greenhouse, SmartRecruiters, and Ashby URLs/parsers, a 250ms request delay, `--limit`, `--seed`, `--companies`, and output paths. `main()` records failed boards but returns success after producing available records.
+- [x] Load a MIT-licensed public ATS company catalog, select IT postings from the first 300 companies with results, and document the command in README.
 - [x] Run `python -m unittest tests.test_collect_public_ats_postings -v` and `python -m py_compile ingestion/collect_public_ats_postings.py`; expect PASS with no compiler output.
 - [x] Commit with `feat: collect public ATS golden-set postings`.

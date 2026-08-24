@@ -15,7 +15,7 @@ It does not crawl job-board HTML, submit forms, bypass rate limits, or collect a
 
 ## Inputs and output
 
-`data/golden-set/public-ats-boards.csv` contains one board per line: ATS type, board identifier, and company name. `--limit` optionally caps the result; omitted means no cap. `--seed` controls the sample only when a cap is supplied.
+The collector downloads a MIT-licensed public ATS company catalog, checks its Greenhouse and Ashby entries, then preserves all IT postings for the first 300 companies that have them. `--companies` changes that target. `--limit` optionally caps the result; `--seed` controls the sample only when a cap is supplied.
 
 `data/golden-set/public-it-postings.csv` contains one row per unique source posting. It preserves source identifiers, URL, collection timestamp, title, location, department, description, and a SHA-256 hash of the fetched source record. `data/golden-set/public-it-postings-manifest.json` records the run settings, source counts, failures, and final count.
 
@@ -23,7 +23,7 @@ The collector identifies IT roles with a small Japanese and English keyword set 
 
 ## Design
 
-One standard-library Python script owns HTTP reads, parsing, filtering, deduplication, sampling, and CSV/manifest output. It uses a conservative request delay and a clear User-Agent. Greenhouse and SmartRecruiters response parsing stays in two small functions because their public response shapes differ. No new dependencies or crawler framework are needed.
+One standard-library Python script owns HTTP reads, parsing, filtering, deduplication, sampling, and CSV/manifest output. It uses a conservative request delay, a five-second timeout, and a clear User-Agent. Greenhouse and Ashby response parsing stays in two small functions because their public response shapes differ. No new dependencies or crawler framework are needed.
 
 The collector only writes its two output files after it has parsed all sources, so a failed run does not leave a partial golden set. The manifest makes incomplete collection explicit.
 
@@ -33,4 +33,4 @@ A standard-library `unittest` module uses fixed API-response fixtures to prove t
 
 ## Known ceiling
 
-The allowlist is manually maintained because public ATS APIs do not provide a reliable directory of Japan employer boards. Add a board after confirming that it is an employer-owned public career site and its API remains publicly accessible.
+The external catalog can change or disappear. Supply a replacement with `--catalog-url` if that happens; the collector still calls each employer ATS endpoint directly.

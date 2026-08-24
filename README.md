@@ -92,7 +92,7 @@ python streaming/spark_preprocess.py    # jsonl -> Spark 배치 전처리 -> dat
 - [`docs/architecture_decision_record.md`](docs/architecture_decision_record.md) — 기술 선택 근거 (ADR-001~005)
 - [`docs/data-spec.md`](docs/data-spec.md) — 데이터 레이어·스키마·ID 정책·품질 검증
 - [`docs/golden-set/real-postings-golden-set.csv`](docs/golden-set/real-postings-golden-set.csv) — 실제 공고 표기 흔들림 표본
-- `python ingestion/collect_public_ats_postings.py` — 공개 고용주 ATS API에서 IT 공고를 모두 수집해 `data/golden-set/public-it-postings.csv`에 저장합니다. 보드는 `data/golden-set/public-ats-boards.csv`에 추가하며, 개별 API 실패는 manifest에 기록하고 계속 진행합니다.
+- `python ingestion/collect_public_ats_postings.py` — MIT 라이선스의 공개 ATS 회사 카탈로그에서 300개 회사를 선택하고 Greenhouse·Ashby 공식 API로 IT 공고를 수집해 `data/golden-set/public-it-postings.csv`에 저장합니다. `--companies 300`으로 회사 수를 바꾸며, 개별 API 실패는 manifest에 기록하고 계속 진행합니다.
 - [`docs/diagrams/architecture-diagram-v1.html`](docs/diagrams/architecture-diagram-v1.html) — 아키텍처 다이어그램
 
 ## 저장소 구조

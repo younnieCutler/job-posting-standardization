@@ -30,6 +30,23 @@ class CollectPublicAtsPostingsTests(unittest.TestCase):
         self.assertEqual(record["company_name"], "Example")
         self.assertTrue(collector.is_it_record(record))
 
+    def test_ashby_record_is_filtered_and_normalized(self):
+        record = collector.ashby_record(
+            {
+                "id": "job-8",
+                "title": "Platform Engineer",
+                "jobUrl": "https://jobs.ashbyhq.com/example/job-8",
+                "location": "Tokyo",
+                "department": "Engineering",
+                "descriptionHtml": "<p>Operate cloud platforms.</p>",
+            },
+            "Example",
+        )
+
+        self.assertEqual(record["source_platform"], "ashby")
+        self.assertEqual(record["source_posting_id"], "job-8")
+        self.assertTrue(collector.is_it_record(record))
+
     def test_prepare_records_deduplicates_and_applies_seeded_cap(self):
         output = collector.prepare_records(
             [self.record("1"), self.record("1"), self.record("2"), self.record("3")],
@@ -48,6 +65,38 @@ class CollectPublicAtsPostingsTests(unittest.TestCase):
 
         self.assertEqual(rows, [])
         self.assertIn("offline", failure)
+
+    def test_catalog_boards_selects_supported_unique_companies(self):
+        boards = collector.catalog_boards(
+            [
+                {"platform": "greenhouse", "slug": "stripe", "name": "Stripe"},
+                {"platform": "ashby", "slug": "openai", "name": "OpenAI"},
+                {"platform": "lever", "slug": "skip", "name": "Skip"},
+                {"platform": "greenhouse", "slug": "stripe", "name": "Stripe"},
+            ],
+            limit=2,
+        )
+
+        self.assertEqual(
+            boards,
+            [
+                {"ats": "greenhouse", "board": "stripe", "company": "Stripe"},
+                {"ats": "ashby", "board": "openai", "company": "OpenAI"},
+            ],
+        )
+
+    def test_select_companies_keeps_all_records_for_the_first_companies(self):
+        rows = [
+            {"company_name": "A", "source_posting_id": "1"},
+            {"company_name": "A", "source_posting_id": "2"},
+            {"company_name": "B", "source_posting_id": "3"},
+            {"company_name": "C", "source_posting_id": "4"},
+        ]
+
+        self.assertEqual(
+            collector.select_companies(rows, target=2),
+            rows[:3],
+        )
 
 
 if __name__ == "__main__":
