@@ -2,7 +2,7 @@
 
 ## Goal
 
-Collect up to 300 current Japan IT job postings from employer-published ATS APIs. The output supplies real field-variation examples and can be replayed as an arrival stream for the synthetic-data demo.
+Collect every current Japan IT job posting available from employer-published ATS APIs. The output supplies real field-variation examples and can be replayed as an arrival stream for the synthetic-data demo.
 
 ## Scope
 
@@ -15,11 +15,11 @@ It does not crawl job-board HTML, submit forms, bypass rate limits, or collect a
 
 ## Inputs and output
 
-`data/golden-set/public-ats-boards.csv` contains one board per line: ATS type, board identifier, and company name. `--limit` defaults to 300. `--seed` controls the random sample.
+`data/golden-set/public-ats-boards.csv` contains one board per line: ATS type, board identifier, and company name. `--limit` optionally caps the result; omitted means no cap. `--seed` controls the sample only when a cap is supplied.
 
 `data/golden-set/public-it-postings.csv` contains one row per unique source posting. It preserves source identifiers, URL, collection timestamp, title, location, department, description, and a SHA-256 hash of the fetched source record. `data/golden-set/public-it-postings-manifest.json` records the run settings, source counts, failures, and final count.
 
-The collector identifies IT roles with a small Japanese and English keyword set applied to title, department, and description. It deduplicates by `(source_platform, source_posting_id)` before sampling. If fewer than the requested limit exist, it writes every valid record and exits non-zero so the gap is visible.
+The collector identifies IT roles with a small Japanese and English keyword set applied to title, department, and description. It deduplicates by `(source_platform, source_posting_id)` before optional sampling. Source failures are recorded in the manifest and do not stop other boards.
 
 ## Design
 
