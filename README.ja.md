@@ -69,7 +69,7 @@
 - **どうしたか**: **「誰の求人か」と「どう書かれているか」を切り離しました**。書き方の型は実物のサンプルから取り、その型を当てはめる相手（職種名・会社・経験レベル・勤務地）はサンプルの外から幅広く組み合わせます。こうすると、日本の採用市場らしい表記の散らかり方は実物に基づいたまま、毎回違う組み合わせのデータが作れます。
 - 生成の仕組み（`ingestion/`）で、実在する7つの媒体（HRMOS / doda / Geekly / OpenWork / mid_tenshoku / talentio / 自社サイト）を模した形のデータを作り、**「本当はどれとどれが同じ求人か」という答え合わせ用の正解表**（`data/synthetic/ground_truth.csv`）も別に残します。さらに、会社・職種・媒体・経験レベル・表記パターンが一方に偏っていないかを自動チェックしています。
 
-判断の経緯は [`docs/architecture_decision_record.md`](docs/architecture_decision_record.md) のADR-005に書いています。
+判断の経緯は [`docs/architecture_decision_record.ja.md`](docs/architecture_decision_record.ja.md) のADR-005に書いています。
 
 ### 正直に書いておくと
 
@@ -97,7 +97,7 @@ flowchart TD
 | Airflow | 上の処理を決まった時間に自動で動かす |
 | Looker Studio | 結果をグラフで見せる |
 
-なぜこの道具かは [`docs/architecture_decision_record.md`](docs/architecture_decision_record.md) に、全体像の図は [`docs/diagrams/architecture-diagram-v1.html`](docs/diagrams/architecture-diagram-v1.html) にあります。
+なぜこの道具かは [`docs/architecture_decision_record.ja.md`](docs/architecture_decision_record.ja.md) に、全体像の図は [`docs/diagrams/architecture-diagram-v1.html`](docs/diagrams/architecture-diagram-v1.html) にあります。
 
 ## 5. 今どこまで進んでいるか
 
@@ -121,16 +121,16 @@ python streaming/consumer.py            # 受信 -> ファイルに保存
 python streaming/spark_preprocess.py    # まとめて整える -> 結果を保存
 ```
 
-**やり取りするデータの中身**: 項目の一覧と実例は [`docs/data-spec.md`](docs/data-spec.md) にあります。
+**やり取りするデータの中身**: 項目の一覧と実例は [`docs/data-spec.ja.md`](docs/data-spec.ja.md) にあります。
 
 **結果**（2026年8月23日、手元での実行）: 送信590件に対し受信590件で、件数は一致しました。そのあとの整える処理で590件が575件になっています。減った15件は**わざと仕込んだ「似ているけれど別の求人」**で、機械が間違えて同じ求人だと判定しないかを試すためのものです。重複は0件でした。あわせて、全角と半角が混ざった日本語の職種名を統一した項目を足しています（例：`ＳＥ` と `SE` を同じ表記に揃える）。
 
-**実装済みと未実装**: 流す・受け取る・まとめて整える、までは実際に動かしました。職種名を標準の呼び方に寄せる処理、データ倉庫への登録、分析用の整理、自動実行はこれからです。
+**実装済み**: 流す・受け取る・まとめて整える、までは実際に動かしました。
 
 ## ドキュメント
 
-- [`docs/architecture_decision_record.md`](docs/architecture_decision_record.md) — なぜこの道具・この方針を選んだかの記録
-- [`docs/data-spec.md`](docs/data-spec.md) — データの項目定義、番号の振り方、品質チェック
+- [`docs/architecture_decision_record.ja.md`](docs/architecture_decision_record.ja.md) — なぜこの道具・この方針を選んだかの記録
+- [`docs/data-spec.ja.md`](docs/data-spec.ja.md) — データの項目定義、番号の振り方、品質チェック
 - [`docs/golden-set/real-postings-golden-set.csv`](docs/golden-set/real-postings-golden-set.csv) — 実際の求人から書き写した表記ゆれのサンプル
 - [`docs/diagrams/architecture-diagram-v1.html`](docs/diagrams/architecture-diagram-v1.html) — 全体像の図
 
