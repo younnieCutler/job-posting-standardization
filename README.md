@@ -87,23 +87,67 @@ python streaming/spark_preprocess.py    # jsonl -> Spark 배치 전처리 -> dat
 
 **실제 구현 vs 계획**: Kafka Producer/Consumer, Spark 배치 전처리(정규화·중복제거·필터)는 실제 구현·실행 완료. Canonical Schema 전체 매핑, BigQuery MERGE, dbt 모델링, Airflow 스케줄링은 이후 세션 계획대로 미구현 상태입니다.
 
+### 5차시 과제 — Airflow 배치 자동화 (제출용)
+
+지금까지 만든 것을 코드 수정 없이 파라미터만 바꿔 재실행할 수 있도록 Airflow DAG로 감쌌습니다. 대상은 4차시 Kafka/Spark 트랙이 아니라 `ingestion/collect_public_ats_postings.py`(공개 ATS API 기반 실채용공고 수집기) — 이 수집기는 이미 `--companies`/`--limit`/`--catalog-url` 인자를 갖고 있어 그대로 DAG params로 노출했습니다.
+
+**설계 결정**: 수집기가 실행할 때마다 `public-it-postings.csv`를 덮어쓰던 것을 `data/golden-set/public-it-postings/dt=<날짜>/` 파티션 구조로 바꿨습니다(`data/raw/<platform>/` 관례와 동일). `@daily`로 스케줄링하면 매번 새 파티션이 쌓여 "공고는 계속 발생한다"는 실제 패턴을 반영합니다 — 채용공고는 초 단위 이벤트가 아니라 하루~며칠 단위로 발생하므로 스트리밍이 아니라 주기적 배치 폴링이 맞는 방식이라 판단했습니다.
+
+**실행 명령**
+```bash
+python3 -m venv .venv-airflow && source .venv-airflow/bin/activate
+pip install -r requirements-airflow.txt
+export AIRFLOW_HOME="$(pwd)/airflow_home"
+export AIRFLOW__CORE__DAGS_FOLDER="$(pwd)/dags"
+export AIRFLOW__CORE__LOAD_EXAMPLES=False
+airflow db migrate
+
+# 파라미터 바꿔 재실행 (코드 수정 없음)
+airflow dags test collect_public_postings 2026-08-25 -c '{"companies": 5, "limit": 20}'
+airflow dags test collect_public_postings 2026-08-26 -c '{"companies": 8}'
+```
+
+**DAG params**
+
+| 파라미터 | 타입 | 기본값 | 의미 |
+|---|---|---|---|
+| `companies` | int | 300 | 스캔할 회사 수 |
+| `limit` | int(선택) | 없음 | 수집 건수 상한 |
+| `catalog_url` | string | ConorsCode/open-jobs-data | ATS 보드 카탈로그 URL |
+
+**태스크 구성**: `collect`(ATS 수집, `--run-date {{ ds }}`로 파티션 지정) → `normalize`(Spark, NFKC 정규화 + `posting_id` 계산 + 중복 제거).
+
+**결과** (로그 전문: `docs/airflow-run-logs/`):
+- Run 1 (`companies=5, limit=20`, 2026-08-25): 수집 20건 → Spark 전/후 20건→20건
+- Run 2 (`companies=8`, limit 없음, 2026-08-26): 수집 1600건 → Spark 전/후 1600건→1600건
+- 같은 코드, 다른 파라미터로 결과 규모가 달라짐을 확인 — 재실행 요건 충족
+
+**저장 위치/포맷**: `data/golden-set/public-it-postings/dt=<날짜>/postings.csv`(수집 원본), `data/golden-set/public-it-postings-canonical/dt=<날짜>/*.parquet`(정규화 결과, `posting_id` 포함)
+
+**실제 구현 vs 계획**: DAG로 수집+정규화 자동화, 파라미터 재실행 완료. retry/재시도, 크론 스케줄 등록(현재는 수동 트리거로만 검증), BigQuery MERGE/dbt/Looker 연결은 이후 세션 범위.
+
 ## 문서
 
 - [`docs/architecture_decision_record.md`](docs/architecture_decision_record.md) — 기술 선택 근거 (ADR-001~005)
 - [`docs/data-spec.md`](docs/data-spec.md) — 데이터 레이어·스키마·ID 정책·품질 검증
 - [`docs/golden-set/real-postings-golden-set.csv`](docs/golden-set/real-postings-golden-set.csv) — 실제 공고 표기 흔들림 표본
-- `python ingestion/collect_public_ats_postings.py` — MIT 라이선스의 공개 ATS 회사 카탈로그에서 300개 회사를 선택하고 Greenhouse·Ashby 공식 API로 IT 공고를 수집해 `data/golden-set/public-it-postings.csv`에 저장합니다. `--companies 300`으로 회사 수를 바꾸며, 개별 API 실패는 manifest에 기록하고 계속 진행합니다.
+- `python ingestion/collect_public_ats_postings.py` — MIT 라이선스의 공개 ATS 회사 카탈로그에서 300개 회사를 선택하고 Greenhouse·Ashby 공식 API로 IT 공고를 수집해 `data/golden-set/public-it-postings/dt=<날짜>/postings.csv`에 저장합니다(날짜별 파티션, 5차시부터 Airflow `@daily`로 재실행). `--companies 300`으로 회사 수를 바꾸며, 개별 API 실패는 manifest에 기록하고 계속 진행합니다.
 - [`docs/diagrams/architecture-diagram-v1.html`](docs/diagrams/architecture-diagram-v1.html) — 아키텍처 다이어그램
 
 ## 저장소 구조
 
 ```
 requirements.txt              # Faker, pandas, pyarrow, kafka-python, pyspark
+requirements-airflow.txt       # apache-airflow 등 — 5차시 전용, 별도 venv(.venv-airflow)에 설치
 docker-compose.yml             # Kafka(KRaft, 단일 노드) — 4차시 과제용
+dags/
+  collect_postings_dag.py      # 5차시 과제용 — 수집→정규화 Airflow DAG
 ingestion/
   generate_synthetic_postings.py
   synth_rules.py
   verify_coverage.py
+  collect_public_ats_postings.py       # 공개 ATS API 기반 실채용공고 수집기(5차시부터 Airflow로 재실행)
+  spark_normalize_public_postings.py   # 5차시 과제용 — 수집 결과 Spark 정규화
 streaming/                     # 4차시 과제용 (JDF 메인 아키텍처와 별개)
   producer.py
   consumer.py
@@ -114,11 +158,15 @@ data/kafka_landed/
   postings.jsonl              # Kafka Consumer 적재 결과
 data/processed/
   postings_clean.parquet      # Spark 배치 전처리 결과
+data/golden-set/public-it-postings/dt=<날짜>/       # ATS 수집기 원본(날짜 파티션, gitignore)
+data/golden-set/public-it-postings-canonical/dt=<날짜>/  # Spark 정규화 결과(gitignore)
 data/synthetic/
   ground_truth.csv            # 매칭 정답지 (role_id/posting_id/tier/company 등)
 docs/
   architecture_decision_record.md
   data-spec.md
   golden-set/real-postings-golden-set.csv
+  plans/2026-08-25-airflow-batch-orchestration.md  # 5차시 구현 계획 + 진행 이력
+  airflow-run-logs/            # 5차시 DAG 실행 로그 2건(다른 파라미터)
   diagrams/architecture-diagram-v1.html
 ```
