@@ -48,18 +48,23 @@ Cross-run dedup is deferred to the BigQuery MERGE stage (later session) using th
 - Create: `dags/collect_postings_dag.py`
 - Create: `requirements-airflow.txt` (separate from `requirements.txt` — Airflow's dependency set is heavy and unrelated to the core pipeline)
 
-- [ ] `python3 -m venv .venv-airflow && source .venv-airflow/bin/activate && pip install "apache-airflow==3.3.1" --constraint <official constraints URL for the installed Python version>`.
-- [ ] DAG `collect_public_postings`, schedule `@daily`, `params` exposing `companies` (int, default 300), `limit` (optional int), `catalog_url` (string, default `DEFAULT_CATALOG`) — these map directly onto the collector's existing argparse flags, satisfying the "re-run with different input, no code changes" requirement.
-- [ ] Task 1 (`BashOperator` or `PythonOperator`): run `collect_public_ats_postings.main()` with the DAG run's params and `--run-date {{ ds }}`.
-- [ ] Task 2: run `spark_normalize_public_postings.py` against that same `dt=` partition.
-- [ ] `airflow standalone` locally, trigger the DAG twice with different `companies`/`limit` values, screenshot both runs + logs for submission.
+- [x] `python3 -m venv .venv-airflow && pip install "apache-airflow==3.3.1" --constraint <constraints-3.13.txt>` + pyspark/pandas/pyarrow into the same venv (tasks run in-process, need both).
+- [x] DAG `collect_public_postings` (TaskFlow `@dag`/`@task`, `airflow.sdk`), schedule `@daily`, `params`: `companies` (int, default 300), `limit` (optional int), `catalog_url` (string).
+- [x] `collect` task calls `collect_public_ats_postings.main()` with params + `--run-date {{ ds }}` (context `ds`).
+- [x] `normalize` task calls `spark_normalize_public_postings.main()` against that same `dt=` partition (XCom-passed run_date).
+- [x] Verified with `airflow dags test` (not `airflow standalone` — synchronous, no scheduler/webserver needed for this evidence) twice with different params:
+  - Run 1: `companies=5, limit=20` → collected 20 → Spark 20→20
+  - Run 2: `companies=8`, no limit → collected 1600 → Spark 1600→1600
+  - Full logs saved to `docs/airflow-run-logs/`. Commit `45c8c0d`.
 
 ### Task 4: README — 5차시 section
 
 **Files:**
 - Modify: `README.md`
 
-- [ ] Add a "5차시 과제 — Airflow 배치 자동화" section (same style as the existing 4차시 section): run commands, DAG params table, what re-running with different params produces, explicit "실제 구현 vs 계획" line noting BigQuery/dbt/Looker are still not implemented.
+- [x] Added "5차시 과제 — Airflow 배치 자동화" section: run commands, DAG params table, run1/run2 results, storage locations, explicit "실제 구현 vs 계획" line. Also fixed a stale line in the pre-existing 문서 section that still pointed at the old flat `public-it-postings.csv` path. Commit `45c8c0d`.
+
+## Status: all 4 tasks complete (2026-08-26)
 
 ---
 
