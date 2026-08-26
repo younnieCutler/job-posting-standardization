@@ -1,0 +1,12 @@
+{
+  "collected_at": "2026-08-26T11:39:02.858271+00:00",
+  "boards_attempted": 334,
+  "records_written": 1600,
+  "limit": null,
+  "seed": 42,
+  "failures": {
+    "greenhouse:cerebral": "HTTP Error 404: Not Found",
+    "ashby:vellum": "HTTP Error 404: Not Found"
+  },
+  "companies_with_it_postings": 8
+}
