@@ -85,6 +85,12 @@ class CollectPublicAtsPostingsTests(unittest.TestCase):
             ],
         )
 
+    def test_default_paths_partition_by_run_date(self):
+        output, manifest = collector.default_paths("2026-08-25")
+
+        self.assertTrue(str(output).endswith("dt=2026-08-25/postings.csv"))
+        self.assertTrue(str(manifest).endswith("dt=2026-08-25/manifest.json"))
+
     def test_select_companies_keeps_all_records_for_the_first_companies(self):
         rows = [
             {"company_name": "A", "source_posting_id": "1"},

@@ -25,9 +25,15 @@ FIELDS = (
     "location", "department", "description", "source_record_sha256", "collected_at",
 )
 ROOT = Path(__file__).resolve().parent.parent
-DEFAULT_OUTPUT = ROOT / "data" / "golden-set" / "public-it-postings.csv"
-DEFAULT_MANIFEST = ROOT / "data" / "golden-set" / "public-it-postings-manifest.json"
+PARTITION_ROOT = ROOT / "data" / "golden-set" / "public-it-postings"
 DEFAULT_CATALOG = "https://raw.githubusercontent.com/ConorsCode/open-jobs-data/main/companies.json"
+
+
+def default_paths(run_date):
+    """dt=<run_date> partition, mirroring data/raw/<platform>/*.parquet so repeated
+    runs accumulate history instead of overwriting a single snapshot."""
+    partition = PARTITION_ROOT / f"dt={run_date}"
+    return partition / "postings.csv", partition / "manifest.json"
 
 
 def text(value):
@@ -163,8 +169,9 @@ def write_output(records, output, manifest, failures, boards, limit, seed):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
-    parser.add_argument("--manifest", type=Path, default=DEFAULT_MANIFEST)
+    parser.add_argument("--run-date", default=datetime.now(timezone.utc).date().isoformat())
+    parser.add_argument("--output", type=Path)
+    parser.add_argument("--manifest", type=Path)
     parser.add_argument("--catalog-url", default=DEFAULT_CATALOG)
     parser.add_argument("--companies", type=int, default=300)
     parser.add_argument("--limit", type=int)
@@ -172,6 +179,9 @@ def main(argv=None):
     args = parser.parse_args(argv)
     if (args.limit is not None and args.limit < 1) or args.companies < 1:
         parser.error("--limit and --companies must be positive")
+    default_output, default_manifest = default_paths(args.run_date)
+    output = args.output or default_output
+    manifest = args.manifest or default_manifest
     boards = catalog_boards(fetch_json(args.catalog_url), limit=None)
     records, failures = [], {}
     for index, board in enumerate(boards):
@@ -182,8 +192,8 @@ def main(argv=None):
         if failure:
             failures[f"{board['ats']}:{board['board']}"] = failure
     prepared = prepare_records(select_companies(records, args.companies), args.limit, args.seed)
-    write_output(prepared, args.output, args.manifest, failures, boards, args.limit, args.seed)
-    print(f"wrote {len(prepared)} records; companies={len({r['company_name'] for r in prepared})}; failures={len(failures)}")
+    write_output(prepared, output, manifest, failures, boards, args.limit, args.seed)
+    print(f"wrote {len(prepared)} records; companies={len({r['company_name'] for r in prepared})}; failures={len(failures)}; run_date={args.run_date}")
 
 
 if __name__ == "__main__":
