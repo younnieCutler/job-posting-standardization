@@ -46,11 +46,62 @@
 ## 3. 파이프라인 개요
 
 ```mermaid
-flowchart TD
-    A["합성 구인공고 7플랫폼<br/>GCS Raw Zone (Parquet)"] --> B["Spark<br/>Canonical Schema 매핑"]
-    B --> C["BigQuery<br/>MERGE (posting_id 기준)"]
-    C --> D["dbt Core<br/>변환 / 모델링"]
-    D --> E["Looker Studio"]
+flowchart LR
+    subgraph SRC["소스"]
+        S1["합성 채용공고 생성기<br/>실 플랫폼 7종(hrmos·doda·geekly 등)"]
+    end
+
+    subgraph RAW["GCS Raw Zone"]
+        R1["data/raw/&lt;platform&gt;/*.parquet"]
+    end
+
+    subgraph SPARK["Spark"]
+        direction TB
+        SP1["일본어 정규화(NFKC)"]
+        SP2["급여 표기 파싱"]
+        SP3["Taxonomy 매핑 → Canonical Schema"]
+    end
+
+    subgraph BQ["BigQuery"]
+        direction TB
+        B1["Staging 테이블 적재"]
+        B2["MERGE INTO Canonical<br/>(posting_id 키)"]
+    end
+
+    subgraph DBT["dbt Core"]
+        direction TB
+        D1["모델 변환(dbt run)"]
+        D2["테스트(dbt test)"]
+    end
+
+    LOOKER["Looker Studio<br/>BI 대시보드"]
+
+    S1 --> R1 --> SP1
+    SP1 --> SP2 --> SP3
+    SP3 --> B1 --> B2
+    B2 --> D1 --> D2
+    D2 --> LOOKER
+
+    AF["Airflow<br/>(BashOperator, 순서 지휘)"]
+    AF -.실행 지휘.-> SPARK
+    AF -.실행 지휘.-> BQ
+    AF -.실행 지휘.-> DBT
+
+    classDef src fill:#eef2ff,stroke:#4f46e5,color:#312e81
+    classDef raw fill:#ecfeff,stroke:#0891b2,color:#164e63
+    classDef spark fill:#fff7ed,stroke:#ea580c,color:#7c2d12
+    classDef bq fill:#eff6ff,stroke:#2563eb,color:#1e3a8a
+    classDef dbt fill:#f0fdf4,stroke:#16a34a,color:#14532d
+    classDef looker fill:#fdf4ff,stroke:#a21caf,color:#701a75
+    classDef af fill:#fafafa,stroke:#6b7280,color:#374151,stroke-dasharray: 4 3
+
+    class S1 src
+    class R1 raw
+    class SP1,SP2,SP3 spark
+    class B1,B2 bq
+    class D1,D2 dbt
+    class LOOKER looker
+    class AF af
 ```
 
 - **처리 엔진**: Spark (ADR-001)

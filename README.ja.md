@@ -80,11 +80,61 @@
 ## 4. 全体の流れ
 
 ```mermaid
-flowchart TD
-    A["7媒体ぶんの求人データ<br/>（そのままの形で保管）"] --> B["同じ形に揃える処理"]
-    B --> C["データベースに登録<br/>（同じ求人は上書き）"]
-    C --> D["分析しやすい形に整える"]
-    D --> E["グラフ・ダッシュボード"]
+flowchart LR
+    subgraph SRC["データのもと"]
+        S1["7媒体ぶんの求人データ"]
+    end
+
+    subgraph RAW["そのままの形で保管"]
+        R1["求人データ（そのまま）"]
+    end
+
+    subgraph SPARK["Spark"]
+        direction TB
+        SP1["表記のばらつきをそろえる"]
+        SP2["同じ形に整える"]
+    end
+
+    subgraph BQ["データベース"]
+        direction TB
+        B1["取り込む"]
+        B2["同じ求人は上書き"]
+    end
+
+    subgraph DBT["dbt"]
+        direction TB
+        D1["分析しやすい形に整理"]
+        D2["中身のチェック"]
+    end
+
+    LOOKER["グラフ・ダッシュボード"]
+
+    S1 --> R1 --> SP1
+    SP1 --> SP2
+    SP2 --> B1 --> B2
+    B2 --> D1 --> D2
+    D2 --> LOOKER
+
+    AF["Airflow<br/>（決まった時間に自動で動かす）"]
+    AF -.自動で動かす.-> SPARK
+    AF -.自動で動かす.-> BQ
+    AF -.自動で動かす.-> DBT
+
+    classDef src fill:#eef2ff,stroke:#4f46e5,color:#312e81
+    classDef raw fill:#ecfeff,stroke:#0891b2,color:#164e63
+    classDef spark fill:#fff7ed,stroke:#ea580c,color:#7c2d12
+    classDef bq fill:#eff6ff,stroke:#2563eb,color:#1e3a8a
+    classDef dbt fill:#f0fdf4,stroke:#16a34a,color:#14532d
+    classDef looker fill:#fdf4ff,stroke:#a21caf,color:#701a75
+    classDef af fill:#fafafa,stroke:#6b7280,color:#374151,stroke-dasharray: 4 3
+
+    class S1 src
+    class R1 raw
+    class SP1,SP2 spark
+    class B1,B2 bq
+    class D1,D2 dbt
+    class LOOKER looker
+    class AF af
 ```
 
 使っている道具と役割です。名前は覚えなくて構いません。
