@@ -1,6 +1,6 @@
-# Airflow Batch Orchestration Implementation Plan (5차시 과제)
+# Airflow Batch Orchestration Implementation Plan (4차시 과제)
 
-**Goal:** Wrap the public ATS postings collector in an Airflow DAG that can be re-run with different parameters without code changes (5차시 requirement, due 2026-08-27 17:00), while making the collector's output match the "data keeps arriving" real-world posting cadence instead of a single overwritten snapshot.
+**Goal:** Wrap the public ATS postings collector in an Airflow DAG that can be re-run with different parameters without code changes (4차시 requirement, due 2026-08-27 17:00), while making the collector's output match the "data keeps arriving" real-world posting cadence instead of a single overwritten snapshot.
 
 **Context:** JDF's target architecture (README §3) is GCS Raw Zone → Spark Canonical mapping → BigQuery MERGE → dbt → Looker Studio, all batch. Real-time streaming (Kafka in the main pipeline) was explicitly rejected — job postings arrive on the order of days/weeks per company, not events per second; the existing Kafka work (4차시) stays a separate, already-graded track and is not touched here. BigQuery/dbt/Looker remain out of scope for this task — no GCP/dbt setup exists yet.
 
@@ -57,12 +57,12 @@ Cross-run dedup is deferred to the BigQuery MERGE stage (later session) using th
   - Run 2: `companies=8`, no limit → collected 1600 → Spark 1600→1600
   - Full logs saved to `docs/airflow-run-logs/`. Commit `45c8c0d`.
 
-### Task 4: README — 5차시 section
+### Task 4: README — 4차시 section
 
 **Files:**
 - Modify: `README.md`
 
-- [x] Added "5차시 과제 — Airflow 배치 자동화" section: run commands, DAG params table, run1/run2 results, storage locations, explicit "실제 구현 vs 계획" line. Also fixed a stale line in the pre-existing 문서 section that still pointed at the old flat `public-it-postings.csv` path. Commit `45c8c0d`.
+- [x] Added "4차시 과제 — Airflow 배치 자동화" section: run commands, DAG params table, run1/run2 results, storage locations, explicit "실제 구현 vs 계획" line. Also fixed a stale line in the pre-existing 문서 section that still pointed at the old flat `public-it-postings.csv` path. Commit `45c8c0d`.
 
 ## Status: all 4 tasks complete (2026-08-26)
 

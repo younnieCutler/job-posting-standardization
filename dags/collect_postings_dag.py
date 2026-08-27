@@ -1,4 +1,4 @@
-"""5차시 과제 — ATS 공고 수집기 + Spark 정규화를 Airflow로 오케스트레이션.
+"""4차시 과제 — ATS 공고 수집기 + Spark 정규화를 Airflow로 오케스트레이션.
 
 companies/limit/catalog_url을 DAG params로 노출해 코드 수정 없이 재실행 가능.
 매일 실행(@daily)해 "공고는 계속 발생한다"를 주기적 폴링으로 반영한다.

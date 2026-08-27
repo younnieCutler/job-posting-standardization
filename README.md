@@ -138,7 +138,7 @@ python streaming/spark_preprocess.py    # jsonl -> Spark 배치 전처리 -> dat
 
 **실제 구현 vs 계획**: Kafka Producer/Consumer, Spark 배치 전처리(정규화·중복제거·필터)는 실제 구현·실행 완료. Canonical Schema 전체 매핑, BigQuery MERGE, dbt 모델링, Airflow 스케줄링은 이후 세션 계획대로 미구현 상태입니다.
 
-### 5차시 과제 — Airflow 배치 자동화 (제출용)
+### 4차시 과제 — Airflow 배치 자동화 (제출용)
 
 지금까지 만든 것을 코드 수정 없이 파라미터만 바꿔 재실행할 수 있도록 Airflow DAG로 감쌌습니다. 대상은 4차시 Kafka/Spark 트랙이 아니라 `ingestion/collect_public_ats_postings.py`(공개 ATS API 기반 실채용공고 수집기) — 이 수집기는 이미 `--companies`/`--limit`/`--catalog-url` 인자를 갖고 있어 그대로 DAG params로 노출했습니다.
 
@@ -182,23 +182,23 @@ airflow dags test collect_public_postings 2026-08-26 -c '{"companies": 8}'
 - [`docs/architecture_decision_record.md`](docs/architecture_decision_record.md) — 기술 선택 근거 (ADR-001~005)
 - [`docs/data-spec.md`](docs/data-spec.md) — 데이터 레이어·스키마·ID 정책·품질 검증
 - [`docs/golden-set/real-postings-golden-set.csv`](docs/golden-set/real-postings-golden-set.csv) — 실제 공고 표기 흔들림 표본
-- `python ingestion/collect_public_ats_postings.py` — MIT 라이선스의 공개 ATS 회사 카탈로그에서 300개 회사를 선택하고 Greenhouse·Ashby 공식 API로 IT 공고를 수집해 `data/golden-set/public-it-postings/dt=<날짜>/postings.csv`에 저장합니다(날짜별 파티션, 5차시부터 Airflow `@daily`로 재실행). `--companies 300`으로 회사 수를 바꾸며, 개별 API 실패는 manifest에 기록하고 계속 진행합니다.
+- `python ingestion/collect_public_ats_postings.py` — MIT 라이선스의 공개 ATS 회사 카탈로그에서 300개 회사를 선택하고 Greenhouse·Ashby 공식 API로 IT 공고를 수집해 `data/golden-set/public-it-postings/dt=<날짜>/postings.csv`에 저장합니다(날짜별 파티션, 4차시부터 Airflow `@daily`로 재실행). `--companies 300`으로 회사 수를 바꾸며, 개별 API 실패는 manifest에 기록하고 계속 진행합니다.
 - [`docs/diagrams/architecture-diagram-v1.html`](docs/diagrams/architecture-diagram-v1.html) — 아키텍처 다이어그램
 
 ## 저장소 구조
 
 ```
 requirements.txt              # Faker, pandas, pyarrow, kafka-python, pyspark
-requirements-airflow.txt       # apache-airflow 등 — 5차시 전용, 별도 venv(.venv-airflow)에 설치
+requirements-airflow.txt       # apache-airflow 등 — 4차시 전용, 별도 venv(.venv-airflow)에 설치
 docker-compose.yml             # Kafka(KRaft, 단일 노드) — 4차시 과제용
 dags/
-  collect_postings_dag.py      # 5차시 과제용 — 수집→정규화 Airflow DAG
+  collect_postings_dag.py      # 4차시 과제용 — 수집→정규화 Airflow DAG
 ingestion/
   generate_synthetic_postings.py
   synth_rules.py
   verify_coverage.py
-  collect_public_ats_postings.py       # 공개 ATS API 기반 실채용공고 수집기(5차시부터 Airflow로 재실행)
-  spark_normalize_public_postings.py   # 5차시 과제용 — 수집 결과 Spark 정규화
+  collect_public_ats_postings.py       # 공개 ATS API 기반 실채용공고 수집기(4차시부터 Airflow로 재실행)
+  spark_normalize_public_postings.py   # 4차시 과제용 — 수집 결과 Spark 정규화
 streaming/                     # 4차시 과제용 (JDF 메인 아키텍처와 별개)
   producer.py
   consumer.py
@@ -217,7 +217,7 @@ docs/
   architecture_decision_record.md
   data-spec.md
   golden-set/real-postings-golden-set.csv
-  plans/2026-08-25-airflow-batch-orchestration.md  # 5차시 구현 계획 + 진행 이력
-  airflow-run-logs/            # 5차시 DAG 실행 로그 2건(다른 파라미터)
+  plans/2026-08-25-airflow-batch-orchestration.md  # 4차시 구현 계획 + 진행 이력
+  airflow-run-logs/            # 4차시 DAG 실행 로그 2건(다른 파라미터)
   diagrams/architecture-diagram-v1.html
 ```

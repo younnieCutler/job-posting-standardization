@@ -1,4 +1,4 @@
-"""5차시 과제용 Spark 배치 정규화 (실채용공고, ATS 수집기 결과).
+"""4차시 과제용 Spark 배치 정규화 (실채용공고, ATS 수집기 결과).
 
 data/golden-set/public-it-postings/dt=<run-date>/postings.csv 를 읽어
 (1) title/description NFKC 정규화 (2) posting_id = sha256(source_platform+source_posting_id)
