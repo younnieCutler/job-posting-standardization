@@ -177,6 +177,27 @@ airflow dags test collect_public_postings 2026-08-26 -c '{"companies": 8}'
 
 **실제 구현 vs 계획**: DAG로 수집+정규화 자동화, 파라미터 재실행 완료. retry/재시도, 크론 스케줄 등록(현재는 수동 트리거로만 검증), BigQuery MERGE/dbt/Looker 연결은 이후 세션 범위.
 
+### 5차시 과제 — 부하·장애·복구 실험 (제출용)
+
+4차시에서 만든 `collect_public_ats_postings.py` → `spark_normalize_public_postings.py` 배치 파이프라인을 코드 수정 없이 파라미터만 바꿔 (1) 정상 실행 기준치 (2) 부하 증가 (3) 장애 재현 3종 (4) 복구 검증까지 진행했습니다. 이 트랙엔 HTTP API·DB 커넥션·Kafka 스트리밍이 없어(로컬 파일 emulation만) k6/Artillery/Locust/Toxiproxy 대신 공식 진행 방법 예시 중 "파일·배치 파이프라인"(날짜/건수 범위 확대) 방식을 그대로 적용했습니다.
+
+**결과 요약** (전문·실행 명령·manifest 비교: `docs/loadtest-logs/evidence.md`):
+
+| 실험 | 입력 | collect 결과 | normalize 결과 |
+|---|---|---|---|
+| 베이스라인 | companies=5, limit=20 | 20건 (3m26s) | 20→20 (6.8s) |
+| 부하 증가 | companies=300 | 25,684건 (3m19s) | 25,684→25,684 (8.3s) |
+| 중복 실행(2회 연속) | 같은 run-date로 재실행 | 1회차 20건 / 2회차 20건 | 20→20 / 20→20 (누적 안 됨) |
+| 잘못된 입력 | 존재하지 않는 catalog-url | `HTTPError 404`로 즉시 실패, 부분 파일 없음 | 해당 없음 |
+| 강제 중단 → 복구 | Spark 정규화 도중 `timeout 3`으로 kill | 출력 0개(깨진 파일 없음) → 재실행 시 25,684→25,684로 완전 복구 | — |
+
+**핵심 확인 사항**:
+- 부하가 늘어도(20건→25,684건, 약 1,284배) collect 실행시간은 거의 그대로 — 카탈로그 전체 334~340개 보드 순회가 지배적 비용이고 `--companies`는 순회 이후 선택 단계에만 영향. normalize(Spark)는 데이터량 증가가 시간에 직접 반영됨(6.8s→8.3s).
+- 같은 `dt=` 파티션에 재실행해도 데이터가 누적되지 않음 — CSV `"w"` 덮어쓰기 + parquet `overwrite` 모드가 재실행 간 멱등성을 자연스럽게 보장.
+- 처리 도중 강제 종료돼도 깨진 출력이 남지 않고, 재실행 한 번으로 원본 건수 그대로 완전히 복구됨.
+
+**스코프 밖**: DB 적재 실패 재현(로컬엔 실제 DB 연결 없음), Kafka 스트리밍 트랙(별도 4차시 제출분)의 장애 재현.
+
 ## 문서
 
 - [`docs/architecture_decision_record.md`](docs/architecture_decision_record.md) — 기술 선택 근거 (ADR-001~005)

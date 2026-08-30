@@ -1,0 +1,21 @@
+26/08/30 17:53:46 WARN Utils: Your hostname, JeongYun.local resolves to a loopback address: 127.0.0.1; using 192.168.1.216 instead (on interface en0)
+26/08/30 17:53:46 WARN Utils: Set SPARK_LOCAL_IP if you need to bind to another address
+Setting default log level to "WARN".
+To adjust logging level use sc.setLogLevel(newLevel). For SparkR, use setLogLevel(newLevel).
+26/08/30 17:53:47 WARN NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+[Stage 10:>                                                       (0 + 11) / 11][Stage 10:=====>                                                  (1 + 10) / 11][Stage 10:===============>                                         (3 + 8) / 11]26/08/30 17:53:52 WARN MemoryManager: Total allocation exceeds 95.00% (1,020,054,720 bytes) of heap memory
+Scaling row group sizes to 95.00% for 8 writers
+26/08/30 17:53:52 WARN MemoryManager: Total allocation exceeds 95.00% (1,020,054,720 bytes) of heap memory
+Scaling row group sizes to 84.44% for 9 writers
+26/08/30 17:53:52 WARN MemoryManager: Total allocation exceeds 95.00% (1,020,054,720 bytes) of heap memory
+Scaling row group sizes to 76.00% for 10 writers
+26/08/30 17:53:52 WARN MemoryManager: Total allocation exceeds 95.00% (1,020,054,720 bytes) of heap memory
+Scaling row group sizes to 69.09% for 11 writers
+[Stage 12:>                                                       (0 + 11) / 12]26/08/30 17:53:53 WARN MemoryManager: Total allocation exceeds 95.00% (1,020,054,720 bytes) of heap memory
+Scaling row group sizes to 76.00% for 10 writers
+26/08/30 17:53:53 WARN MemoryManager: Total allocation exceeds 95.00% (1,020,054,720 bytes) of heap memory
+Scaling row group sizes to 84.44% for 9 writers
+26/08/30 17:53:53 WARN MemoryManager: Total allocation exceeds 95.00% (1,020,054,720 bytes) of heap memory
+Scaling row group sizes to 95.00% for 8 writers
+                                                                                before=25684 after=25684 saved_to=/Users/macbook/dev/career/job-posting-standardization/data/golden-set/public-it-postings-canonical/dt=2026-08-30-interrupt-test run_date=2026-08-30-interrupt-test
+python ingestion/spark_normalize_public_postings.py --run-date   0.11s user 0.04s system 1% cpu 8.194 total

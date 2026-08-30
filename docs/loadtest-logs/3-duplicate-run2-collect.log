@@ -1,0 +1,5 @@
+wrote 20 records; companies=5; failures=5; run_date=2026-08-30-dup
+
+real	3m21.677s
+user	0m15.674s
+sys	0m2.740s

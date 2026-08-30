@@ -1,0 +1,16 @@
+{
+  "collected_at": "2026-08-30T08:49:38.032448+00:00",
+  "boards_attempted": 334,
+  "records_written": 20,
+  "limit": 20,
+  "seed": 42,
+  "failures": {
+    "greenhouse:temporaltechnologies": "HTTP Error 404: Not Found",
+    "greenhouse:scopely": "The read operation timed out",
+    "greenhouse:cerebral": "HTTP Error 404: Not Found",
+    "greenhouse:blackforestlabs": "HTTP Error 404: Not Found",
+    "ashby:commonroom": "HTTP Error 404: Not Found",
+    "ashby:vellum": "HTTP Error 404: Not Found"
+  },
+  "companies_with_it_postings": 5
+}

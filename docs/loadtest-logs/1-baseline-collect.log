@@ -1,0 +1,2 @@
+wrote 20 records; companies=5; failures=5; run_date=2026-08-30-baseline
+python ingestion/collect_public_ats_postings.py --run-date 2026-08-30-baselin  14.41s user 2.62s system 8% cpu 3:26.25 total

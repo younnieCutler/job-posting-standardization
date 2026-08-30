@@ -1,0 +1,5 @@
+wrote 25684 records; companies=300; failures=5; run_date=2026-08-30-scaleup
+
+real	3m18.872s
+user	0m16.458s
+sys	0m2.893s

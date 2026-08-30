@@ -1,0 +1,10 @@
+26/08/30 17:49:39 WARN Utils: Your hostname, JeongYun.local resolves to a loopback address: 127.0.0.1; using 192.168.1.216 instead (on interface en0)
+26/08/30 17:49:39 WARN Utils: Set SPARK_LOCAL_IP if you need to bind to another address
+Setting default log level to "WARN".
+To adjust logging level use sc.setLogLevel(newLevel). For SparkR, use setLogLevel(newLevel).
+26/08/30 17:49:39 WARN NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+[Stage 12:>                                                         (0 + 1) / 1]                                                                                before=20 after=20 saved_to=/Users/macbook/dev/career/job-posting-standardization/data/golden-set/public-it-postings-canonical/dt=2026-08-30-dup run_date=2026-08-30-dup
+
+real	0m6.487s
+user	0m0.122s
+sys	0m0.036s
