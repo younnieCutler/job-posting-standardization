@@ -27,7 +27,7 @@
 ## Task 5: README §5차시 섹션 + 발표 자료
 
 - [x] README에 "5차시 과제 — 부하·장애·복구 실험" 섹션 추가 (실행명령, 결과표, 실제구현 vs 계획)
-- [ ] vault에 큐카드+대본 (기존 워크플로우 그대로)
+- [x] vault에 큐카드+대본 (기존 워크플로우 그대로)
 
 ## 스코프 밖
 
@@ -35,4 +35,4 @@
 - k6/Artillery/Locust/Toxiproxy 도입 — HTTP API/DB 커넥션 없는 파일 배치 트랙이라 불필요
 - Kafka 스트리밍 트랙(4차시 별도 제출분)의 장애 재현 — 이번엔 손대지 않음, 시간 되면 추가 검토
 
-## Status: Task 1-4 complete (2026-08-30). Task 5 vault 큐카드/대본은 다음 단계.
+## Status: all 5 tasks complete (2026-08-30).
