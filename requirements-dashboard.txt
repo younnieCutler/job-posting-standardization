@@ -1,6 +1,5 @@
-# 6차시 제출용 Streamlit 대시보드 (app/dashboard.py) 전용 — 별도 venv(.venv-dashboard)에 설치
+# 6차시 제출용 Streamlit 리포트 (app/dashboard.py) 전용 — 별도 venv(.venv-dashboard)에 설치
 streamlit
 pandas
 pyarrow
-google-cloud-bigquery
-db-dtypes
+altair

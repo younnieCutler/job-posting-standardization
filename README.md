@@ -198,6 +198,40 @@ airflow dags test collect_public_postings 2026-08-26 -c '{"companies": 8}'
 
 **스코프 밖**: DB 적재 실패 재현(로컬엔 실제 DB 연결 없음), Kafka 스트리밍 트랙(별도 4차시 제출분)의 장애 재현.
 
+### 6차시 과제 — 표준화 리포트 (Streamlit)
+
+파이프라인이 저장한 결과 파일을 실제로 읽어 리포트로 보여주는 화면입니다.
+대상 독자는 일본 IT 채용 계획을 세우는 HR/TA 데이터 분석 담당자입니다.
+
+```bash
+python3 -m venv .venv-dashboard && source .venv-dashboard/bin/activate
+pip install -r requirements-dashboard.txt
+streamlit run app/dashboard.py                 # http://localhost:8501
+```
+
+**두 데이터셋을 합치지 않고, 첫 화면에서 하나를 고릅니다.**
+
+| 데이터셋 | 소스 | 용도 |
+|---|---|---|
+| 일본어 표준화 데이터셋 (합성) | `data/processed/postings_clean.parquet` | 표기 흔들림을 얼마나 일관되게 정리했는지 검증 |
+| 글로벌 공개 ATS 데이터셋 (실제, ~2만건) | `data/golden-set/public-it-postings-canonical/dt=<date>/` | 실제 공개 공고 시장 스냅샷 (미국·글로벌 중심, 일본 시장 아님) |
+
+한 줄 방어 논리: *실제 Public ATS 데이터는 시장 스냅샷 분석에, 일본어 Synthetic 데이터는
+표준화 파이프라인 품질 검증에 사용했고, 목적이 달라 화면에서도 분리했습니다.*
+
+원칙 — **데이터가 실제로 증명하는 것만 화면에서 주장합니다**:
+- 개발자용 컬럼명·DB 용어(`job_family_group`, `NFKC`, `parquet`, `mart`, `taxonomy` 등)를 화면에
+  노출하지 않습니다. 사용자 언어로 먼저 표시하고, 기술 설명은 캡션/도움말에서만.
+- 차트 제목은 질문형. 각 섹션에 "이 화면을 보는 사람 / 답하려는 질문" 한 줄.
+- 미구현(직무 분류, 연봉 파싱, 클라우드 저장/집계 테이블, 채용률·이탈률·경쟁률·실제 급여
+  벤치마크)은 완성 기능으로 표시하지 않고 "아직 만들지 않은 것"에 명시합니다.
+
+리포트 흐름(일본어 트랙): 요약 → 직무 수요 → 스킬 신호 → 채널 → 표준화 품질 → 방법·출처.
+리포트 흐름(글로벌 ATS 트랙): 요약 → 기업 → 직무명 → 근무 지역 → 기술 키워드 → 출처 비교 → 방법·출처.
+언어 전환: 한국어 / 日本語 / English. 벤치마킹 상세: `docs/6th-assignment/benchmarking.md`.
+
+자체 검증: `python app/test_dashboard.py` (집계 로직, 프레임워크 없음).
+
 ## 문서
 
 - [`docs/architecture_decision_record.md`](docs/architecture_decision_record.md) — 기술 선택 근거 (ADR-001~005)
@@ -224,6 +258,11 @@ streaming/                     # 4차시 과제용 (JDF 메인 아키텍처와 �
   producer.py
   consumer.py
   spark_preprocess.py
+app/                          # 6차시 과제용 — 표준화 리포트 (Streamlit)
+  dashboard.py                 # 두 데이터셋(일본어 합성 / 글로벌 실제 ATS) 리포트, 첫 화면에서 택1
+  i18n.py                      # 한국어 / 日本語 / English 문자열 + 벤치마크 요약표
+  test_dashboard.py            # 집계 로직 자체 검증
+requirements-dashboard.txt     # streamlit, pandas, pyarrow, altair
 data/raw/                     # GCS Raw Zone 로컬 에뮬레이션 (플랫폼별 디렉토리, Parquet)
   hrmos/ doda/ geekly/ openwork/ mid_tenshoku/ talentio/ company_site/
 data/kafka_landed/

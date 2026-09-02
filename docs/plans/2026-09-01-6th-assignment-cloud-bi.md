@@ -156,12 +156,18 @@ memory 를 우선으로.
 - `models/marts/schema.yml` — `dbt test`: `posting_id` unique + not_null (거버넌스 증빙)
 - `profiles.yml` — BigQuery 타깃, `~/.config/gcloud` ADC 사용
 
-### 5.6 `app/dashboard.py` (Streamlit — 제출용 BI)
-- `google-cloud-bigquery` + ADC로 `jdf.mart_tech_demand` / `mart_platform_dist` / (선택) 정규화 효과 쿼리
-- 차트 3개: 기술별 공고 수(표기변형 합쳐진 후) · 플랫폼별 분포 · 파티션별 누적 추이
-- 로컬 fallback: BQ 접근 불가 시 `data/processed/postings_clean.parquet` 읽어 동일 차트
-- 실행: `streamlit run app/dashboard.py` → 사용자가 스크린샷 + `mart_tech_demand` 결과 1건 캡처
-- `requirements-dashboard.txt` (streamlit, google-cloud-bigquery, pandas, pyarrow)
+### 5.6 `app/dashboard.py` (Streamlit — 표준화 리포트) — 구현 완료
+- 원칙: **데이터가 실제로 증명하는 것만 주장.** Synthetic ≠ 실제 시장. 두 데이터셋 합치지 않음. 미구현은 미구현으로 표기.
+- **첫 화면에서 데이터셋 택1** (합산 KPI 금지):
+  - 일본어 표준화 데이터셋 (합성, `data/processed/postings_clean.parquet`) — 표기 흔들림 정리 검증. "표준화했을 때 이렇게 통합된다"
+  - 글로벌 공개 ATS 데이터셋 (실제 ~2만건, `public-it-postings-canonical/dt=<date>/`) — 시장 스냅샷. "이 표본에서 Python 공고 N건 관측됨" (미국·글로벌, 일본 아님)
+- 일본어 흐름: 요약 → 직무 수요 → 스킬 신호 → 채널 → 표준화 품질(측정 가능 지표만) → 방법·출처
+- 글로벌 ATS 흐름: 요약 → 기업 → 직무명 → 근무 지역 → 기술 키워드(+회사별) → 출처 비교 → 방법·출처
+- 표준화 품질 지표: 전체 공고 수 · 표기 통일로 직무명 바뀐 수 · 중복 제거 수 · 값 비어있는 비율 · 연봉 표기 방식 가짓수 · 우대요건 항목명 가짓수. **하드코딩 "−N" 없음**
+- 화면에 개발자 컬럼명·DB 용어 노출 금지. 차트 제목 질문형. 섹션마다 "보는 사람 / 답하려는 질문" 한 줄
+- 미구현(직무 분류, 연봉 파싱, 클라우드 저장/집계, 채용률·이탈률·경쟁률·실제 급여 벤치마크)은 "아직 만들지 않은 것"에 명시
+- 벤치마크: 화면엔 4행 요약표(Lightcast/HRog/Revelio/TheirStack), 상세는 `docs/6th-assignment/benchmarking.md`
+- 언어: 한국어 / 日本語 / English (`app/i18n.py`). `app/test_dashboard.py`, `requirements-dashboard.txt`(streamlit/pandas/pyarrow/altair), `.venv-dashboard`
 
 ### 5.7 `dags/collect_postings_dag.py`
 `normalize` 뒤에 `upload_gcs` → `load_bq` → `dbt_build`(BashOperator: `dbt run && dbt test`) 태스크 추가.
