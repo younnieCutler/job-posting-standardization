@@ -7,3 +7,4 @@ __pycache__/
 .claude/settings.local.json
 data/golden-set/public-it-postings/
 data/golden-set/public-it-postings-canonical/
+.venv-dashboard/
