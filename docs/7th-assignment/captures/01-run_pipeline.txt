@@ -1,0 +1,82 @@
+------------------------------------------------------------
+▶ 0/6  Kafka 기동 (토픽 초기화)
+------------------------------------------------------------
+ Network job-posting-standardization_default Creating 
+ Network job-posting-standardization_default Created 
+ Container jdf-kafka Creating 
+ Container jdf-kafka Created 
+ Container jdf-kafka Starting 
+ Container jdf-kafka Started 
+Kafka(9092) 대기 → up
+------------------------------------------------------------
+▶ 1/6  합성 공고 생성  (ingestion/generate_synthetic_postings.py)
+------------------------------------------------------------
+roles=165 negatives=15 postings=590
+hrmos: 97 rows -> /Users/macbook/dev/career/job-posting-standardization/data/raw/hrmos
+doda: 82 rows -> /Users/macbook/dev/career/job-posting-standardization/data/raw/doda
+geekly: 87 rows -> /Users/macbook/dev/career/job-posting-standardization/data/raw/geekly
+openwork: 79 rows -> /Users/macbook/dev/career/job-posting-standardization/data/raw/openwork
+mid_tenshoku: 74 rows -> /Users/macbook/dev/career/job-posting-standardization/data/raw/mid_tenshoku
+talentio: 92 rows -> /Users/macbook/dev/career/job-posting-standardization/data/raw/talentio
+company_site: 79 rows -> /Users/macbook/dev/career/job-posting-standardization/data/raw/company_site
+ground_truth: 590 rows -> /Users/macbook/dev/career/job-posting-standardization/data/synthetic
+------------------------------------------------------------
+▶ 2/6  Kafka Producer  (streaming/producer.py)
+------------------------------------------------------------
+/Users/macbook/dev/career/job-posting-standardization/streaming/producer.py:43: DeprecationWarning: value_serializer does not implement kafka.serializer.Serializer
+  main()
+sent=590 topic=jdf.raw_postings
+------------------------------------------------------------
+▶ 3/6  Kafka Consumer  (streaming/consumer.py)
+------------------------------------------------------------
+/Users/macbook/dev/career/job-posting-standardization/streaming/consumer.py:23: DeprecationWarning: value_deserializer does not implement kafka.serializer.Deserializer
+  consumer = KafkaConsumer(
+received=590 saved_to=/Users/macbook/dev/career/job-posting-standardization/data/kafka_landed/postings.jsonl
+------------------------------------------------------------
+▶ 4/6  Spark 전처리  (streaming/spark_preprocess.py)
+------------------------------------------------------------
+26/09/06 22:48:09 WARN Utils: Your hostname, JeongYun.local resolves to a loopback address: 127.0.0.1; using 192.168.1.216 instead (on interface en0)
+26/09/06 22:48:09 WARN Utils: Set SPARK_LOCAL_IP if you need to bind to another address
+Setting default log level to "WARN".
+To adjust logging level use sc.setLogLevel(newLevel). For SparkR, use setLogLevel(newLevel).
+26/09/06 22:48:10 WARN NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+26/09/06 22:48:14 WARN SparkStringUtils: Truncated the string representation of a plan since it was too large. This behavior can be adjusted by setting 'spark.sql.debug.maxToStringFields'.
+[Stage 10:>                                                         (0 + 1) / 1][Stage 12:>                                                         (0 + 1) / 1]                                                                                before=590 after=575 saved_to=/Users/macbook/dev/career/job-posting-standardization/data/processed/postings_clean.parquet
+------------------------------------------------------------
+▶ 5/6  클라우드 적재  (건너뜀 — --cloud 로 켜기)
+------------------------------------------------------------
+------------------------------------------------------------
+▶ 6/6  저장 결과 읽기  (scripts/read_result.py)
+------------------------------------------------------------
+파일         : data/processed/postings_clean.parquet
+공고 수      : 575
+채널 수      : 7
+직무 분야 수 : 6
+posting_id 중복: 0
+
+채널별 공고 수
+  hrmos            92
+  talentio         92
+  geekly           85
+  company_site     79
+  doda             78
+  openwork         76
+  mid_tenshoku     73
+
+스킬 키워드 상위 5 (표기 변형 합산)
+  SQL                      326
+  Requirement definition   324
+  Python                   309
+  AWS                      290
+  GCP                      290
+------------------------------------------------------------
+단계별 처리 건수
+------------------------------------------------------------
+1. 생성 (data/raw/*.parquet)   590
+2. Kafka Producer 전송         590
+3. Kafka Consumer 수신         590
+4. Spark 전처리 전           590
+5. Spark 전처리 후 (최종 저장) 575
+------------------------------------------------------------
+최종 저장: data/processed/postings_clean.parquet
+다음: streamlit run app/dashboard.py   (별도 venv: .venv-dashboard)

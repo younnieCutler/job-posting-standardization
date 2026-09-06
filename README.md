@@ -2,7 +2,7 @@
 
 **한국어 | [日本語](README.ja.md)**
 
-일본 IT 채용 시장의 구인공고(JD, Job Description)를 여러 소스에서 모으면 표기 불일치가 발생합니다. 이를 표준화하는 데이터 파이프라인 프로젝트입니다. 데이터 엔지니어 부트캠프 라이브 스터디 과제 — 1차시(주제·데이터셋 선정)부터 4차시(Kafka+Spark 배치 전처리)까지 진행 중입니다.
+일본 IT 채용 시장의 구인공고(JD, Job Description)를 여러 소스에서 모으면 표기 불일치가 발생합니다. 이를 표준화하는 데이터 파이프라인 프로젝트입니다. 데이터 엔지니어 부트캠프 라이브 스터디 과제 — 1차시(주제·데이터셋 선정)부터 7차시(서빙 레이어·최종 발표)까지 진행했습니다. 각 차시 산출물은 아래 4~7차시 섹션 참고.
 
 **목표 한 줄**: 여러 채용 사이트/에이전트가 서로 다르게 표기한 같은 구인공고를 정규화·엔티티 해소해 신뢰할 수 있는 시장 분석 데이터로 만든다.
 
@@ -39,89 +39,78 @@
 - **Golden set** (`docs/golden-set/real-postings-golden-set.csv`, 56행/19케이스): 실제 공개된 채용 공고를 6개 직무 그룹 전체에 걸쳐 수기로 채록한 표본입니다. "같은 공고가 사이트마다 어떻게 다르게 표기되는가"의 실제 패턴(필드명 변형, 급여 표기 방식, 시니어리티 등급 혼합 등)을 여기서 추출합니다.
 - **문제점**: golden set은 회사 21곳(익명화)의 변주일 뿐이라 이 규칙을 그대로 복제하면 생성된 데이터가 그 21개 회사의 재탕처럼 보여 다양성이 죽습니다.
 - **해결**: 역할 축(직무·회사·티어·근무지)과 패턴 축(golden set에서 채록한 표기 흔들림·급여 체계·티어 혼합)을 분리했습니다. 패턴 축은 golden set에서 가져오되 그 패턴이 적용되는 대상(직무명·회사·경력 등급)은 golden set 밖에서 폭넓게 뽑아 조합합니다. 이렇게 하면 표기 불일치라는 "일본 채용시장 특유의 지저분함"은 실증됐지만 매번 다른 조합으로 생성되어 볼륨 있는 데이터셋 역할을 할 수 있습니다.
-- 생성기(`ingestion/generate_synthetic_postings.py`, `ingestion/synth_rules.py`)로 실 플랫폼 7종(hrmos/doda/geekly/openwork/mid_tenshoku/talentio/company_site) 스키마의 원시 데이터를 `data/raw/<platform>/*.parquet`(GCS Raw Zone 로컬 에뮬레이션)로 만들고, 정답지 `data/synthetic/ground_truth.csv`를 별도로 남깁니다. `ingestion/verify_coverage.py`로 회사/직군/플랫폼/티어/표기 패턴이 한쪽에 쏠리지 않았는지 자동 검증합니다.
+- 생성기(`ingestion/generate_synthetic_postings.py`, `ingestion/synth_rules.py`)로 실 플랫폼 7종(hrmos/doda/geekly/openwork/mid_tenshoku/talentio/company_site) 스키마의 원시 데이터를 `data/raw/<platform>/*.parquet`(플랫폼별 Parquet 저장소)로 만들고, 정답지 `data/synthetic/ground_truth.csv`를 별도로 남깁니다. `ingestion/verify_coverage.py`로 회사/직군/플랫폼/티어/표기 패턴이 한쪽에 쏠리지 않았는지 자동 검증합니다.
 
 상세 근거는 [`docs/architecture_decision_record.md`](docs/architecture_decision_record.md)의 ADR-005(Faker 합성 데이터 vs 실제 스크래핑)를 참고하세요.
 
 ## 3. 파이프라인 개요
 
+아래는 **실제 코드에 있는 파이프라인**입니다. 두 트랙이 별개이며, 둘 다 Streamlit 리포트에서 읽습니다.
+
 ```mermaid
 flowchart LR
-    subgraph SRC["소스"]
-        S1["합성 채용공고 생성기<br/>실 플랫폼 7종(hrmos·doda·geekly 등)"]
+    subgraph GEN["합성 트랙 (메인)"]
+        direction LR
+        G1["generate_synthetic_postings.py<br/>Faker · 7플랫폼"] --> G2["data/raw/&lt;platform&gt;/*.parquet"]
+        G2 --> K1["Kafka producer<br/>topic jdf.raw_postings"]
+        K1 --> K2["Kafka consumer<br/>postings.jsonl"]
+        K2 --> SPP["spark_preprocess.py<br/>NFKC · dedup · negative_control 제외"]
+        SPP --> P1["data/processed/<br/>postings_clean.parquet"]
     end
 
-    subgraph RAW["GCS Raw Zone"]
-        R1["data/raw/&lt;platform&gt;/*.parquet"]
+    subgraph ATS["실제 공개 ATS 트랙"]
+        direction LR
+        A1["collect_public_ats_postings.py<br/>Greenhouse · Ashby API"] --> A2["dt=&lt;date&gt;/postings.csv<br/>+ manifest.json"]
+        A2 --> A3["spark_normalize_public_postings.py<br/>NFKC · posting_id · dedup"]
+        A3 --> A4["public-it-postings-canonical/<br/>dt=&lt;date&gt;/*.parquet"]
     end
 
-    subgraph SPARK["Spark"]
-        direction TB
-        SP1["일본어 정규화(NFKC)"]
-        SP2["급여 표기 파싱"]
-        SP3["Taxonomy 매핑 → Canonical Schema"]
-    end
+    P1 --> ST["Streamlit 리포트<br/>app/dashboard.py"]
+    A4 --> ST
 
-    subgraph BQ["BigQuery"]
-        direction TB
-        B1["Staging 테이블 적재"]
-        B2["MERGE INTO Canonical<br/>(posting_id 키)"]
-    end
+    AF["Airflow DAG<br/>collect_public_postings<br/>(collect → normalize)"]
+    AF -. 순서 지휘 .-> A1
+    AF -. 순서 지휘 .-> A3
 
-    subgraph DBT["dbt Core"]
-        direction TB
-        D1["모델 변환(dbt run)"]
-        D2["테스트(dbt test)"]
-    end
-
-    LOOKER["Looker Studio<br/>BI 대시보드"]
-
-    S1 --> R1 --> SP1
-    SP1 --> SP2 --> SP3
-    SP3 --> B1 --> B2
-    B2 --> D1 --> D2
-    D2 --> LOOKER
-
-    AF["Airflow<br/>(BashOperator, 순서 지휘)"]
-    AF -.실행 지휘.-> SPARK
-    AF -.실행 지휘.-> BQ
-    AF -.실행 지휘.-> DBT
-
-    classDef src fill:#eef2ff,stroke:#4f46e5,color:#312e81
-    classDef raw fill:#ecfeff,stroke:#0891b2,color:#164e63
-    classDef spark fill:#fff7ed,stroke:#ea580c,color:#7c2d12
-    classDef bq fill:#eff6ff,stroke:#2563eb,color:#1e3a8a
-    classDef dbt fill:#f0fdf4,stroke:#16a34a,color:#14532d
-    classDef looker fill:#fdf4ff,stroke:#a21caf,color:#701a75
+    classDef gen fill:#fff7ed,stroke:#ea580c,color:#7c2d12
+    classDef ats fill:#ecfeff,stroke:#0891b2,color:#164e63
+    classDef st fill:#fdf4ff,stroke:#a21caf,color:#701a75
     classDef af fill:#fafafa,stroke:#6b7280,color:#374151,stroke-dasharray: 4 3
-
-    class S1 src
-    class R1 raw
-    class SP1,SP2,SP3 spark
-    class B1,B2 bq
-    class D1,D2 dbt
-    class LOOKER looker
+    class G1,G2,K1,K2,SPP,P1 gen
+    class A1,A2,A3,A4 ats
+    class ST st
     class AF af
 ```
 
-- **처리 엔진**: Spark (ADR-001)
-- **변환 레이어**: dbt Core (ADR-002)
-- **오케스트레이션**: Airflow + BashOperator (ADR-004)
-- **데이터 웨어하우스**: BigQuery (ADR-003)
+- **현재 스택**: Python · Faker · Kafka(KRaft 단일 노드) · Spark(`local[*]`) · Parquet · Airflow · Streamlit
+- `posting_id` = `sha256(source_platform + source_posting_id)` 결정적 해시 (두 트랙 공통, dedup·재실행 멱등성 키)
+- 원샷 실행: [`scripts/run_pipeline.sh`](scripts/run_pipeline.sh) — 아래 "7차시" 섹션
 
-기술 선택의 상세 트레이드오프는 [`docs/architecture_decision_record.md`](docs/architecture_decision_record.md)에 정리되어 있습니다.
+### 계획 (미구현 — 코드에 없음)
 
-전체 흐름을 시각화한 아키텍처 다이어그램은 [`docs/diagrams/architecture-diagram-v1.html`](docs/diagrams/architecture-diagram-v1.html)에서 확인할 수 있습니다.
+아래는 설계 문서([`docs/architecture_decision_record.md`](docs/architecture_decision_record.md))에 있으나 **아직 코드로 구현되지 않았습니다**. 위 다이어그램에 넣지 않은 이유입니다.
 
-## 4. 현재 상태 / 다음 단계
+| 항목 | 상태 | 사유 |
+|---|---|---|
+| GCS 업로드 · BigQuery staging + `MERGE` | 계획 (Phase 1) | 로컬 parquet로 흐름 검증 우선, 클라우드는 별도 |
+| dbt Core marts (`stg_postings`, `mart_*`) + `dbt test` | 계획 (Phase 2) | BigQuery 적재 이후 |
+| Looker Studio 연동 | 계획 | 서빙은 현재 Streamlit로 대체 |
+| Airflow `on_failure_callback` alert · `push_to_cloud` 태스크 | 계획 (Phase 3) | 클라우드 태스크 추가 시 |
+| 직무 taxonomy 매핑 · salary 텍스트 파서 | 계획 | Canonical Schema 전체 매핑의 일부 |
+| 크론 스케줄 등록 | 계획 | 현재는 `airflow dags test` 수동 트리거만 |
 
-- 합성 데이터 생성기, golden set 검증, GCS Raw Zone(로컬 에뮬레이션) Parquet 저장까지 완료했습니다 (`data/raw/<platform>/`, tier 5단+null/unknown 예외, 실 플랫폼 7종).
-- posting_id는 `sha256(source_platform + source_posting_id)` 결정적 해시로 생성해 BigQuery MERGE 키로 그대로 씁니다.
-- Spark 정규화(Canonical Schema 매핑), dbt 모델링, Airflow DAG, BigQuery 적재는 이후 세션에서 구축 예정입니다.
+아키텍처 다이어그램: [`docs/diagrams/architecture-diagram-v1.html`](docs/diagrams/architecture-diagram-v1.html)(현재 구현) · [`docs/diagrams/target-architecture.html`](docs/diagrams/target-architecture.html)(클라우드 포함 목표).
 
-### 4차시 과제 — Kafka + Spark 배치 전처리 (제출용, 메인 아키텍처와 별개)
+## 4. 진행 상태
 
-라이브 스터디 4차시 공통 과제 대응용으로 `data/raw/<platform>/*.parquet` 뒤에 Kafka 구간을 얇게 추가했습니다. **JDF 메인 아키텍처(GCS→Spark Canonical 매핑→BigQuery MERGE→dbt→Airflow)는 이번 작업으로 바뀌지 않습니다** — JDF는 합성 배치 데이터라 원래 실시간 스트리밍이 필요 없는 도메인이고, 이 구간은 과제 제출 요건 충족용입니다.
+- 합성 데이터 생성기 + golden set 검증 + 플랫폼별 Parquet 저장 완료 (`data/raw/<platform>/`, tier 5단 + null/unknown 예외, 실 플랫폼 7종).
+- Kafka 스트리밍 + Spark 전처리 → `data/processed/postings_clean.parquet` (4차시).
+- ATS 수집 + Spark 정규화 + Airflow DAG (4차시), 부하·장애·복구 실험 (5차시), Streamlit 리포트 (6차시), 원샷 실행 스크립트 + 서빙 정리 (7차시).
+- 위 "계획" 표의 항목들은 다음 라운드.
+
+### 4차시 과제 — Kafka + Spark 배치 전처리
+
+라이브 스터디 4차시 공통 과제로 `data/raw/<platform>/*.parquet` 뒤에 Kafka 스트리밍 구간을 추가했습니다. 원래 이 프로젝트는 합성 배치 데이터라 실시간 스트리밍이 필수는 아니지만, 과제 요건(Kafka Producer/Consumer + Spark 배치 전처리)을 이 구간으로 충족합니다. 이 트랙이 현재 §3 다이어그램의 "합성 트랙(메인)"입니다.
 
 **실행 명령**
 ```bash
@@ -232,6 +221,38 @@ streamlit run app/dashboard.py                 # http://localhost:8501
 
 자체 검증: `python app/test_dashboard.py` (집계 로직, 프레임워크 없음).
 
+### 7차시 과제 — 서빙 + 원샷 실행
+
+수집부터 결과 확인까지를 **한 번의 실행**으로 재현합니다. 합성 트랙(Kafka) 기준.
+
+```bash
+# 사전: Docker Desktop / OrbStack 실행 (Kafka 컨테이너용)
+scripts/run_pipeline.sh
+# generate → Kafka producer/consumer → Spark 전처리 → data/processed/postings_clean.parquet → 읽기
+# 매 실행 Kafka 토픽을 새로 만들어 누적을 막습니다. SEED=42 고정 → 결정적. 모든 출력 overwrite → 되돌리기 안전.
+```
+
+출력 끝에 **단계별 처리 건수 표**가 찍힙니다:
+
+| 단계 | 건수 |
+|---|---|
+| 1. 생성 (`data/raw/*.parquet`) | 590 |
+| 2. Kafka Producer 전송 | 590 |
+| 3. Kafka Consumer 수신 | 590 |
+| 4. Spark 전처리 전 | 590 |
+| 5. Spark 전처리 후 (최종 저장) | 575 |
+
+(전/후 차이 15 = `is_negative_control` 제외. `posting_id` 중복 0.)
+
+**서빙 — 저장 결과를 읽는 장면** (세 가지 중 무엇이든):
+- 스크립트 출력: `python scripts/read_result.py` — 최종 parquet 행수 + 채널별 건수 + 스킬 키워드 상위 5
+- 대시보드: `streamlit run app/dashboard.py` (별도 venv `.venv-dashboard`) → http://localhost:8501
+- (계획) SQL 조회: `bq query 'SELECT ... FROM jdf.postings_canonical'`
+
+**확인 방법**: `scripts/run_pipeline.sh`를 두 번 연속 실행 → 단계별 건수 동일(590→590→590→575). `python app/test_dashboard.py` 통과.
+
+증빙 캡처: `docs/7th-assignment/captures/`. 발표 자료: `docs/7th-assignment/consolidation.md`.
+
 ## 문서
 
 - [`docs/architecture_decision_record.md`](docs/architecture_decision_record.md) — 기술 선택 근거 (ADR-001~005)
@@ -263,7 +284,7 @@ app/                          # 6차시 과제용 — 표준화 리포트 (Strea
   i18n.py                      # 한국어 / 日本語 / English 문자열 + 벤치마크 요약표
   test_dashboard.py            # 집계 로직 자체 검증
 requirements-dashboard.txt     # streamlit, pandas, pyarrow, altair
-data/raw/                     # GCS Raw Zone 로컬 에뮬레이션 (플랫폼별 디렉토리, Parquet)
+data/raw/                     # 합성 생성기 산출물 — 플랫폼별 Parquet (7종)
   hrmos/ doda/ geekly/ openwork/ mid_tenshoku/ talentio/ company_site/
 data/kafka_landed/
   postings.jsonl              # Kafka Consumer 적재 결과

@@ -203,19 +203,34 @@ dbt Conformed Dimension 마트 · Canonical Schema 전체 매핑(급여 파서·
 
 ## 7. 실행 순서 (체크포인트마다 제출 가능 상태 유지)
 
-- [ ] **0. 외부 설계 repo 확인** — 완료 (§2)
-- [ ] **1. 문서 뼈대** (오늘 밤) — `decisions.md`, `consolidation.md`(5차시까지 + §2 ADR), `realism-design.md` 초안. *이 시점에 최소 제출 가능*
-- [ ] **2. job tag 데이터** (내일) — 다운로드 페이지 파일 포맷 확인 → `synth_rules.py` 풀 교체 → `verify_coverage.py` 통과
-- [ ] **3. 템플릿 풀 + 볼륨** — `synth_templates.py` 작성, `N_ROLES` 상향, 생성기 재실행 → `data/raw/<platform>` → Kafka+Spark → `data/processed`
-- [ ] **4. gcloud** — `brew install --cask google-cloud-sdk`; 사용자가 `!`로 `gcloud init`/`auth login`/`auth application-default login`; 프로젝트 ID 확정(`de-bootcamp`)
-- [ ] **5. `cloud/setup.sh`** — API 활성화, 버킷·데이터셋
-- [ ] **6. `cloud/` 3스크립트 구현 + GCS→BQ→MERGE 1회** — 단계별 건수 → `stage-counts.md`
-- [ ] **7. `dbt/` 구현 + `dbt run && dbt test` 1회** — 마트 3개 + 테스트 통과 로그
-- [ ] **8. DAG 클라우드 태스크 추가 + `airflow dags test ... -c '{"push_to_cloud": true}'` 1회** — 실행 로그
-- [ ] **9. alert 실증** — 빈 파티션 1회 실패 → 알림 JSON 캡처
-- [ ] **10. `app/dashboard.py` (Streamlit)** — 내가 작성 (BQ 마트 3쿼리 + 차트 3개 + 로컬 fallback) → 사용자가 `streamlit run` + 스크린샷 + `mart_tech_demand` 결과 1건
-- [ ] **11. 문서 마무리** — `consolidation.md` 7항목 전부, `stage-counts.md`, 구성도, README(양 언어), vault 동기화
-- [ ] **12. commit + push, 디스코드 링크 공유**
+> **운영 원칙 (2026-09-05 추가)**: gcloud/bq/gsutil로 실제 클라우드 리소스를 만들거나 바꾸는 명령은
+> 사용자가 매번 명시적으로 지시했을 때만 실행한다. 조회(`list`/`describe`/`get-value`)는 예외.
+> 스크립트 **작성**은 미리 해도 되지만 **실행**은 그때그때 확인.
+
+- [x] **0. 외부 설계 repo 확인** — 완료 (§2)
+- [x] **1. 문서 뼈대** — `decisions.md`, `consolidation.md`, `realism-design.md`, `stage-counts.md`, `benchmarking.md` 완료 (일부는 아래 §6 로드맵과 다른 형태로 — 로컬 Streamlit 리포트 우선)
+- [ ] **2. job tag 데이터** — 미착수, 다음
+- [ ] **3. 템플릿 풀 + 볼륨** — 미착수, 다음
+- [x] **4. gcloud 인증** — 2026-09-05 완료. 계정 `aforcekim@gmail.com`, 프로젝트 **`bright-link-507313-q3`**(표시 이름 `de-bootcamp`, ACTIVE), ADC 설정 완료. (주의: `de-bootcamp`는 표시 이름이지 project ID 아님 — API·리소스 생성엔 반드시 `bright-link-507313-q3` 사용)
+- [ ] **5. `cloud/setup.sh`** — 미작성. 계획만 아래 §7.1
+- [ ] **6. `cloud/` 3스크립트(`upload_to_gcs.py`/`load_to_bq.py`) 구현 + GCS→BQ→MERGE 1회** — 미착수
+- [ ] **7. `dbt/` 구현 + `dbt run && dbt test` 1회** — 미착수
+- [ ] **8. DAG 클라우드 태스크 추가 + `push_to_cloud` 테스트** — 미착수
+- [ ] **9. alert 실증** — 미착수
+- [x/변경] **10. `app/dashboard.py` (Streamlit)** — 완료했으나 계획과 다른 형태: BQ 마트 아직 없어서 **로컬 parquet만** 읽음, 두 데이터셋(합성/실제 ATS) 완전 분리 구조로 전면 재설계됨. BQ 붙이는 건 §7 이후 별도 작업
+- [x] **11. 문서 마무리(로컬 범위)** — `consolidation.md`에 실제/미착수 정직하게 구분해 반영 완료
+- [x] **12. commit + push** — `9f7d0d9`까지 푸시 완료. 디스코드 공유는 사용자 몫
+
+### 7.1 `cloud/setup.sh` 계획 (작성만, 미실행)
+
+| 항목 | 값 |
+|---|---|
+| 프로젝트 | `bright-link-507313-q3` |
+| 활성화할 API | `bigquery.googleapis.com`, `storage.googleapis.com` |
+| GCS 버킷 | `gs://bright-link-507313-q3-jdf-raw` (리전 추후 확정, 기본 `asia-northeast1` 검토) |
+| BQ 데이터셋 | `jdf` (리전 버킷과 동일 리전 권장) |
+| 멱등성 | 이미 있으면 스킵 (`gcloud services list` / `bq ls` / `gsutil ls` 로 존재 확인 후 생성) |
+| 실행 전제 | **사용자가 "지금 setup.sh 실행해" 라고 명시할 때만 실행.** 작성은 지금 라운드에 해도 무방 |
 
 ---
 

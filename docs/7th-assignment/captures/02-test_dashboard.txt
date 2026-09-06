@@ -1,0 +1,6 @@
+ok  test_ats_skill_keywords_and_company_matrix
+ok  test_field_level_counts
+ok  test_skill_keywords_fold_spelling_variants
+ok  test_synth_quality_only_measures_real_things
+ok  test_top_counts
+all passed

@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JDF — 목표 아키텍처 (클라우드 포함)</title>
+<style>
+  body { font-family: -apple-system, "Helvetica Neue", "Noto Sans KR", sans-serif;
+         max-width: 1100px; margin: 2rem auto; padding: 0 1.5rem; color: #1a1a1a; }
+  h1 { font-size: 1.4rem; margin-bottom: .3rem; }
+  .banner { background: #fef3c7; border-left: 4px solid #d97706; padding: .8rem 1rem;
+            border-radius: 6px; font-size: .92rem; margin: 1rem 0 1.5rem; }
+  .banner b { color: #92400e; }
+  .note { font-size: .85rem; color: #555; margin-top: 1.5rem; }
+  code { background: #f3f4f6; padding: .1rem .35rem; border-radius: 4px; }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({ startOnLoad: true, theme: "neutral" });</script>
+</head>
+<body>
+<h1>JDF — 목표 아키텍처 (클라우드 계층 포함)</h1>
+<div class="banner">
+  <b>점선 = 아직 코드에 없음 (계획).</b> 현재 구현된 부분은
+  <a href="architecture-diagram-v1.html">architecture-diagram-v1.html</a> 참고.
+  클라우드 계층은 7차시 Phase 1~3에서 구현 예정.
+</div>
+
+<pre class="mermaid">
+flowchart LR
+    G["합성/ATS 트랙<br/>(현재 구현)"] --> P["parquet<br/>data/processed · canonical"]
+
+    P -. Phase 1 .-> GCS["GCS<br/>gs://…-jdf-raw"]
+    GCS -. Phase 1 .-> BQS["BigQuery staging_postings<br/>WRITE_TRUNCATE"]
+    BQS -. Phase 1 .-> MRG["MERGE INTO<br/>jdf.postings_canonical<br/>(posting_id 키)"]
+    MRG -. Phase 2 .-> DBT["dbt Core<br/>stg_postings · mart_tech_demand · mart_platform_dist<br/>dbt test"]
+    DBT -. 계획 .-> LK["Looker Studio"]
+    MRG -. 구현됨 .-> ST["Streamlit<br/>app/dashboard.py<br/>(로컬 parquet · BQ 마트 읽기 모드)"]
+
+    AF["Airflow DAG<br/>push_to_cloud=true"] -. Phase 3 .-> GCS
+    AF -. Phase 3 .-> MRG
+    AF -. Phase 3 .-> DBT
+
+    classDef done fill:#ecfdf5,stroke:#059669,color:#065f46
+    classDef plan fill:#fffbeb,stroke:#d97706,color:#92400e,stroke-dasharray: 5 4
+    class G,P,ST done
+    class GCS,BQS,MRG,DBT,LK,AF plan
+</pre>
+
+<p class="note">
+  구현 순서: Phase 1 (<code>cloud/setup.sh</code> → <code>cloud/upload_to_gcs.py</code> →
+  <code>cloud/load_to_bq.py</code>, MERGE 멱등) · Phase 2 (<code>dbt/</code> marts + test) ·
+  Phase 3 (Airflow <code>upload_gcs → load_bq → dbt_build</code> + <code>on_failure_callback</code> alert).
+  진행 상황은 README.md §3 "계획" 표.
+</p>
+</body>
+</html>

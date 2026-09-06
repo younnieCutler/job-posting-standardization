@@ -113,11 +113,13 @@ JDF 파이프라인의 서빙 레이어(Serving Layer)로 사용할 DWH를 선�
 | **dbt 호환성** | 완전 호환, 공식 어댑터 성숙 | 완전 호환, 공식 어댑터 성숙 |
 | **학습 커브** | Snowflake SQL 방언 있음 | 표준 BigQuery SQL (ANSI 기반) |
 
-**결정 기준**:
-- 파이프라인 완성 이후 **일본 채용 공고 Snowflake 언급 비율이 40% 이상**이면 → Snowflake 선택
-- 데모 시각화(Looker Studio 무료 연동)가 더 중요하다고 판단되면 → BigQuery 선택
+**원래 결정 기준** (기록용 — 위 [2026-08-18 확정] 노트로 대체됨):
+- 일본 채용 공고 Snowflake 언급 비율이 40% 이상이면 → Snowflake
+- 데모 시각화(Looker Studio 무료 연동)가 더 중요하면 → BigQuery ← **이 조건으로 확정**
 
-> **현재 상태**: 파이프라인 코어(Ingestion → Transformation → Serving) 완성 후 실제 JD 분석을 통해 결정. 두 선택지 모두 dbt 어댑터가 완전히 지원되므로 전환 비용은 낮음.
+> **현재 상태 (2026-09-06)**: DWH는 **BigQuery로 확정**. 단 BigQuery 적재·`MERGE`·dbt는
+> **아직 코드로 구현되지 않았다** (계획 — README §3 "계획" 표 참고). `posting_id` 해시 키만
+> 이 결정에 맞춰 두 트랙 공통으로 이미 쓰고 있다.
 
 ---
 
