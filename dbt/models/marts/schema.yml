@@ -1,0 +1,23 @@
+version: 2
+
+models:
+  - name: stg_postings
+    description: canonical 공고 타입 캐스팅 + 스킬 태그 배열
+    columns:
+      - name: posting_id
+        description: source_platform + source_posting_id 의 sha256. 두 트랙 공통 키
+        data_tests: [unique, not_null]
+
+  - name: mart_tech_demand
+    description: 스킬 태그별 공고 수
+    columns:
+      - name: skill
+        data_tests: [unique, not_null]
+      - name: postings
+        data_tests: [not_null]
+
+  - name: mart_platform_dist
+    description: 플랫폼별 공고 수 + 스킬 태그 부착률
+    columns:
+      - name: source_platform
+        data_tests: [unique, not_null]

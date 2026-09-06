@@ -1,0 +1,15 @@
+name: jdf
+version: "1.0"
+config-version: 2
+profile: jdf
+
+model-paths: ["models"]
+target-path: "target"
+clean-targets: ["target", "dbt_packages"]
+
+models:
+  jdf:
+    staging:
+      +materialized: view
+    marts:
+      +materialized: table

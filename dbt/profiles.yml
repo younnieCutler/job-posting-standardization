@@ -1,0 +1,12 @@
+# ADC 사용: gcloud auth application-default login 후 동작.
+# 실행: cd dbt && dbt run --profiles-dir . && dbt test --profiles-dir .
+jdf:
+  target: dev
+  outputs:
+    dev:
+      type: bigquery
+      method: oauth
+      project: "{{ env_var('JDF_GCP_PROJECT', 'bright-link-507313-q3') }}"
+      dataset: "{{ env_var('JDF_BQ_DATASET', 'jdf') }}"
+      location: "{{ env_var('JDF_GCP_REGION', 'asia-northeast1') }}"
+      threads: 4
