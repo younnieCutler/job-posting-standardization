@@ -120,18 +120,19 @@ flowchart LR
 - `posting_id` = `sha256(source_platform + source_posting_id)` の決定的ハッシュ（2トラック共通、重複除去・再実行のべき等キー）
 - ワンショット実行: [`scripts/run_pipeline.sh`](scripts/run_pipeline.sh) — 下の「第7回」の節
 
-### クラウド層 — コードはある · 実クラウドは未実行
+### クラウド層 — 実行済み（2026-09-06）
 
-下のスクリプトはリポジトリに **あります** が、実際の GCP リソースに対して **まだ実行していません**（認証・リソース作成は手動ゲート）。そのため上の「現在の実装」図には含めていません。目標構成は [`docs/diagrams/target-architecture.html`](docs/diagrams/target-architecture.html)。
+生成トラックの成果物を GCS → BigQuery `MERGE` → dbt マートまで実際に流しました。プロジェクト `bright-link-507313-q3`。結果は [`docs/7th-assignment/consolidation.md`](docs/7th-assignment/consolidation.md)。目標構成の全体図は [`docs/diagrams/target-architecture.html`](docs/diagrams/target-architecture.html)。
 
 | 項目 | 状態 | 場所 |
 |---|---|---|
-| GCS アップロード · BigQuery staging + `MERGE ON posting_id` | コードあり · 未実行（Phase 1） | [`cloud/`](cloud/) |
-| dbt Core marts（`stg_postings`, `mart_tech_demand`, `mart_platform_dist`）+ `dbt test` | コードあり · 未実行（Phase 2） | [`dbt/`](dbt/) |
-| Airflow `on_failure_callback` アラート · `push_to_cloud` 分岐 | コードあり · 未実行（Phase 3） | [`dags/collect_postings_dag.py`](dags/collect_postings_dag.py) |
-| Looker Studio 連携 | 計画 | サービングは現状 Streamlit + `scripts/read_result.py` + `cloud/query_marts.py`（SQL）で代替 |
+| GCS アップロード · BigQuery staging + `MERGE ON posting_id` | ✅ 実行（canonical 575、2回目は冪等） | [`cloud/`](cloud/) |
+| dbt Core marts（`stg_postings`, `mart_tech_demand`, `mart_platform_dist`）+ `dbt test` | ✅ 実行（`dbt run` PASS=3、`dbt test` PASS=7） | [`dbt/`](dbt/) |
+| alert ガード — 空パーティション → `staging_rows==0` raise | ✅ 実証 | [`cloud/load_to_bq.py`](cloud/load_to_bq.py) |
+| Airflow `on_failure_callback` · `push_to_cloud` 分岐 | コードあり · DAG import 確認（run 未実行） | [`dags/collect_postings_dag.py`](dags/collect_postings_dag.py) |
+| Looker Studio 連携 | 計画 | サービングは Streamlit + `scripts/read_result.py` + `cloud/query_marts.py`（SQL） |
 | 職種 taxonomy マッピング · 給与テキストのパーサ | 計画 | Canonical Schema 全体マッピングの一部 |
-| ATS トラック ↔ synth canonical のスキーマ統合 | 未検証 | 2トラックの列セットが違い `postings_canonical` 共有時に衝突しうる |
+| ATS トラック ↔ synth canonical のスキーマ統合 | 未検証 | 2トラックの列セットが違い `postings_canonical` 共有時に衝突しうる（synth のみ投入） |
 
 ## 5. いまどこまで進んでいるか
 
@@ -235,9 +236,9 @@ scripts/run_pipeline.sh
 **サービング — 保存結果を読む場面**（どれか1つ）:
 - スクリプト出力: `python scripts/read_result.py` — 最終 parquet の件数 + チャネル別件数 + スキルキーワード上位5
 - ダッシュボード: `streamlit run app/dashboard.py` → http://localhost:8501
-- SQL 照会（クラウド）: `python cloud/query_marts.py` — `jdf.postings_canonical` COUNT + 上位10行 + dbt マート。**コードあり · 実クラウド未実行**
+- SQL 照会（クラウド）: `python cloud/query_marts.py` — `jdf.postings_canonical` COUNT(575) + 上位10行 + dbt マート。✅ 2026-09-06 実行
 
-**クラウド経路（コードあり、実行は手動ゲート）**:
+**クラウド経路（2026-09-06 実行済み）**:
 
 ```bash
 # ユーザーが明示的に指示したときだけ — 実 GCP リソースを作る

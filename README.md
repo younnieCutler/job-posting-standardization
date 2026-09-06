@@ -86,18 +86,19 @@ flowchart LR
 - `posting_id` = `sha256(source_platform + source_posting_id)` 결정적 해시 (두 트랙 공통, dedup·재실행 멱등성 키)
 - 원샷 실행: [`scripts/run_pipeline.sh`](scripts/run_pipeline.sh) — 아래 "7차시" 섹션
 
-### 클라우드 계층 — 코드 있음 · 실제 클라우드 미실행
+### 클라우드 계층 — 실행 완료 (2026-09-06)
 
-아래는 스크립트가 저장소에 **있으나**, 실제 GCP 리소스에 대고 **아직 돌리지 않았습니다** (인증·리소스 생성은 수동 게이트). 그래서 위 "현재 구현" 다이어그램에는 넣지 않았습니다. 목표 구성은 [`docs/diagrams/target-architecture.html`](docs/diagrams/target-architecture.html).
+합성 트랙 산출물을 GCS → BigQuery `MERGE` → dbt 마트까지 실제로 돌렸습니다. 프로젝트 `bright-link-507313-q3`. 결과·확인은 [`docs/7th-assignment/consolidation.md`](docs/7th-assignment/consolidation.md). 목표 구성 전체도는 [`docs/diagrams/target-architecture.html`](docs/diagrams/target-architecture.html).
 
 | 항목 | 상태 | 위치 |
 |---|---|---|
-| GCS 업로드 · BigQuery staging + `MERGE ON posting_id` | 코드 있음 · 미실행 (Phase 1) | [`cloud/setup.sh`](cloud/setup.sh) · [`cloud/upload_to_gcs.py`](cloud/upload_to_gcs.py) · [`cloud/load_to_bq.py`](cloud/load_to_bq.py) |
-| dbt Core marts (`stg_postings`, `mart_tech_demand`, `mart_platform_dist`) + `dbt test` | 코드 있음 · 미실행 (Phase 2) | [`dbt/`](dbt/) |
-| Airflow `on_failure_callback` alert · `push_to_cloud` 브랜치 | 코드 있음 · 미실행 (Phase 3) | [`dags/collect_postings_dag.py`](dags/collect_postings_dag.py) |
-| Looker Studio 연동 | 계획 | 서빙은 현재 Streamlit + `scripts/read_result.py` + `cloud/query_marts.py`(SQL)로 대체 |
+| GCS 업로드 · BigQuery staging + `MERGE ON posting_id` | ✅ 실행 (canonical 575, 2회차 멱등) | [`cloud/`](cloud/) |
+| dbt Core marts (`stg_postings`, `mart_tech_demand`, `mart_platform_dist`) + `dbt test` | ✅ 실행 (`dbt run` PASS=3, `dbt test` PASS=7) | [`dbt/`](dbt/) |
+| alert 가드 — 빈 파티션 → `staging_rows==0` raise | ✅ 실증 | [`cloud/load_to_bq.py`](cloud/load_to_bq.py) |
+| Airflow `on_failure_callback` · `push_to_cloud` 브랜치 | 코드 있음 · DAG import 확인 (run 미실행) | [`dags/collect_postings_dag.py`](dags/collect_postings_dag.py) |
+| Looker Studio 연동 | 계획 | 서빙은 Streamlit + `scripts/read_result.py` + `cloud/query_marts.py`(SQL) |
 | 직무 taxonomy 매핑 · salary 텍스트 파서 | 계획 | Canonical Schema 전체 매핑의 일부 |
-| ATS 트랙 ↔ synth canonical 스키마 통합 | 미검증 | 두 트랙 컬럼셋이 달라 `postings_canonical` 공유 시 충돌 가능 |
+| ATS 트랙 ↔ synth canonical 스키마 통합 | 미검증 | 두 트랙 컬럼셋이 달라 `postings_canonical` 공유 시 충돌 가능 (synth만 적재) |
 | 크론 스케줄 등록 | 계획 | 현재는 `airflow dags test` 수동 트리거만 |
 
 아키텍처 다이어그램: [`docs/diagrams/architecture-diagram-v1.html`](docs/diagrams/architecture-diagram-v1.html)(현재 구현) · [`docs/diagrams/target-architecture.html`](docs/diagrams/target-architecture.html)(클라우드 포함 목표).
@@ -248,7 +249,7 @@ scripts/run_pipeline.sh
 **서빙 — 저장 결과를 읽는 장면** (세 가지 중 무엇이든):
 - 스크립트 출력: `python scripts/read_result.py` — 최종 parquet 행수 + 채널별 건수 + 스킬 키워드 상위 5
 - 대시보드: `streamlit run app/dashboard.py` (별도 venv `.venv-dashboard`) → http://localhost:8501
-- SQL 조회 (클라우드): `python cloud/query_marts.py` — `jdf.postings_canonical` COUNT + 상위 10행 + dbt 마트. **코드 있음 · 실제 클라우드 미실행**
+- SQL 조회 (클라우드): `python cloud/query_marts.py` — `jdf.postings_canonical` COUNT(575) + 상위 10행 + dbt 마트. ✅ 2026-09-06 실행
 
 ### 클라우드 경로 (코드 있음, 실제 실행은 수동 게이트)
 

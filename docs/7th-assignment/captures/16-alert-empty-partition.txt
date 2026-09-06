@@ -1,0 +1,5 @@
+=== load_to_bq: 빈 파티션(0행) → staging_rows==0 가드 → raise ===
+▶ load gs://bright-link-507313-q3-jdf-raw/canonical/dt=2020-01-01/*.parquet -> bright-link-507313-q3.jdf.staging_postings
+staging_rows=0
+staging_rows == 0 — 빈 입력. MERGE 중단 (alert 트리거).
+exit=0

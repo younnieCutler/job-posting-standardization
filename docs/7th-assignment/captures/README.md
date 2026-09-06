@@ -10,16 +10,16 @@
 | 04 | Streamlit — 스킬 신호, `data_ai` 필터 (요청·응답 예시) | .png |
 | 05 | Streamlit — 글로벌 ATS 트랙 | .png |
 | 06 | ATS Airflow run 로그 (collect→normalize) | .txt |
-| 07 | `cloud/setup.sh` 출력 | .txt |
-| 08 | `cloud/load_to_bq.py` 출력 (staging/updated/inserted/canonical_total) | .txt |
-| 09 | MERGE 멱등성 — load_to_bq 2회 → canonical_total 불변 | .txt |
-| 10 | `bq query` canonical COUNT = spark after | .txt |
-| 11 | `bq query` canonical 상위 10행 (SQL 조회 장면) | .txt |
-| 12 | `dbt run` + `dbt test` 통과 | .txt |
-| 13 | `bq query` mart 행수·상위값 | .txt |
+| 07 | `cloud/setup.sh` 출력 | .txt ✅ (버킷+데이터셋 생성) |
+| 08 | `run_pipeline.sh --cloud` 전체 (upload + load_to_bq: staging 575 / inserted 575 / canonical_total 575) | .txt ✅ |
+| 09 | MERGE 멱등성 — 2회차 updated=575 inserted=0 canonical_total=575 (불변) | .txt ✅ |
+| 10 | `cloud/query_marts.py` — canonical COUNT=575 (=spark after) + 상위 10행 + 마트 | .txt ✅ |
+| 11 | (10에 포함) canonical 상위 10행 = SQL 조회 서빙 장면 | .txt ✅ |
+| 12 | `dbt run` PASS=3 + `dbt test` PASS=7 | .txt ✅ |
+| 13 | (10에 포함) mart_tech_demand 7행 / mart_platform_dist 7행 | .txt ✅ |
 | 14 | Streamlit — BQ 마트 읽기 모드 | .png |
 | 15 | Airflow `push_to_cloud=true` run — 태스크 success | .txt |
-| 16 | alert 실증 — 빈 파티션 → 콜백 JSON | .txt + .json |
+| 16 | alert 가드 — 빈 파티션(0행) → `staging_rows==0` → raise, MERGE 중단 | .txt ✅ |
 | 17 | 5차시 장애 3종 (기존 `docs/loadtest-logs/*.log` 발췌) | .txt |
 | 18 | 현재 구현 다이어그램 렌더 | .png |
 

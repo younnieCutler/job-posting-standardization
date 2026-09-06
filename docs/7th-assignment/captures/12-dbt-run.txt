@@ -1,0 +1,21 @@
+[0m14:09:32  Running with dbt=1.12.3
+[0m14:09:33  Registered adapter: bigquery=1.12.0
+[0m14:09:33  Unable to do partial parsing because saved manifest not found. Starting full parse.
+[0m14:09:33  Found 3 models, 7 data tests, 561 macros
+[0m14:09:33  
+[0m14:09:33  Concurrency: 4 threads (target='dev')
+[0m14:09:33  
+/Users/macbook/dev/career/job-posting-standardization/.venv-dbt/lib/python3.13/site-packages/google/auth/_default.py:113: UserWarning: Your application has authenticated using end user credentials from Google Cloud SDK without a quota project. You might receive a "quota exceeded" or "API not enabled" error. See the following page for troubleshooting: https://cloud.google.com/docs/authentication/adc-troubleshooting/user-creds. 
+  warnings.warn(_CLOUD_SDK_CREDENTIALS_WARNING)
+[0m14:09:35  1 of 3 START sql view model jdf.stg_postings ................................... [RUN]
+[0m14:09:35  1 of 3 OK created sql view model jdf.stg_postings .............................. [[32mCREATE VIEW (0 processed)[0m in 0.66s]
+[0m14:09:35  2 of 3 START sql table model jdf.mart_platform_dist ............................ [RUN]
+[0m14:09:35  3 of 3 START sql table model jdf.mart_tech_demand .............................. [RUN]
+[0m14:09:38  3 of 3 OK created sql table model jdf.mart_tech_demand ......................... [[32mCREATE TABLE (7.0 rows, 169.7 KiB processed)[0m in 2.20s]
+[0m14:09:38  2 of 3 OK created sql table model jdf.mart_platform_dist ....................... [[32mCREATE TABLE (7.0 rows, 138.1 KiB processed)[0m in 2.35s]
+[0m14:09:38  
+[0m14:09:38  Finished running 2 table models, 1 view model in 0 hours 0 minutes and 4.38 seconds (4.38s).
+[0m14:09:38  
+[0m14:09:38  [32mCompleted successfully[0m
+[0m14:09:38  
+[0m14:09:38  Done. PASS=3 WARN=0 ERROR=0 SKIP=0 NO-OP=0 REUSED=0 TOTAL=3

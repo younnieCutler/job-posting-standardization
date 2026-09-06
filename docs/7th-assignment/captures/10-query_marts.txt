@@ -1,0 +1,37 @@
+
+── canonical 총계
+SELECT COUNT(*) AS n FROM `bright-link-507313-q3.jdf.postings_canonical`
+   n=575
+
+── canonical 상위 10행
+SELECT posting_id, source_platform, company_name, tier FROM `bright-link-507313-q3.jdf.postings_canonical` ORDER BY posting_id LIMIT 10
+   posting_id=00132f826b7555e4729c417fd6740535c5879f7ed8a33c7f2b16840de534f0c5 | source_platform=doda | company_name=合同会社渡辺食品 | tier=senior
+   posting_id=001929c7ff411fbb014f3bdc58ffdad73207db000da7ea33d05d1c2a21ab5008 | source_platform=company_site | company_name=高橋鉱業株式会社 | tier=principal
+   posting_id=00ccfac4d5e2fcd7f3f226e83585e2cfc1f899dea81a2ba9752d0e2a733d2f72 | source_platform=geekly | company_name=田中食品有限会社 | tier=junior
+   posting_id=01e23db514bc65959d465dcd69ebab758512219c06eb420f1ee1b542c704b9a1 | source_platform=hrmos | company_name=石川ガス株式会社 | tier=mid
+   posting_id=024290185963f6c5e96870b28876e24bff2703bbc03eb07bc73e5e7448cb77ee | source_platform=geekly | company_name=株式会社山田食品 | tier=senior
+   posting_id=025279c5f2b495b8570f3a7832a058eee5ce40ef159e12c27fdd9f79143ab7e3 | source_platform=mid_tenshoku | company_name=田中ガス有限会社 | tier=junior
+   posting_id=0263f1e08828bc1a61c20e000075fb737268880ff3627142e2d9382f452ca07e | source_platform=company_site | company_name=有限会社佐藤銀行 | tier=mid
+   posting_id=02872d0ab7d5e8def06dbc8d5c78976237503d6f371b1caad39de8ff980e8442 | source_platform=openwork | company_name=青木鉱業有限会社 | tier=mid
+   posting_id=028cea4b9605e2ad3a783ae79a4bb71ac787d5f6c3013ffe8d1c5de1427db41d | source_platform=openwork | company_name=合同会社石川水産 | tier=senior
+   posting_id=02c7d48e9a395d1a977ff59f00a2fd947260f7934f8d883c28497ae69a8143b1 | source_platform=doda | company_name=高橋印刷株式会社 | tier=mid
+
+── mart_tech_demand 상위 10
+SELECT skill, postings FROM `bright-link-507313-q3.jdf.mart_tech_demand` ORDER BY postings DESC LIMIT 10
+   skill=SQL | postings=326
+   skill=Requirement definition | postings=324
+   skill=Python | postings=309
+   skill=AWS | postings=290
+   skill=GCP | postings=290
+   skill=Security | postings=28
+   skill=ML | postings=21
+
+── mart_platform_dist
+SELECT * FROM `bright-link-507313-q3.jdf.mart_platform_dist` ORDER BY postings DESC
+   source_platform=hrmos | postings=92 | postings_with_skill=90 | skill_tag_rate=0.978
+   source_platform=talentio | postings=92 | postings_with_skill=88 | skill_tag_rate=0.957
+   source_platform=geekly | postings=85 | postings_with_skill=82 | skill_tag_rate=0.965
+   source_platform=company_site | postings=79 | postings_with_skill=78 | skill_tag_rate=0.987
+   source_platform=doda | postings=78 | postings_with_skill=77 | skill_tag_rate=0.987
+   source_platform=openwork | postings=76 | postings_with_skill=76 | skill_tag_rate=1.0
+   source_platform=mid_tenshoku | postings=73 | postings_with_skill=71 | skill_tag_rate=0.973

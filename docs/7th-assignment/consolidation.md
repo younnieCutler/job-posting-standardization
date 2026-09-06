@@ -58,14 +58,35 @@ posting_id 중복: 0
 - 같은 `dt=` 파티션 재실행 시 누적 안 됨 — CSV `"w"` + parquet `overwrite`가 멱등 보장
 - Spark 정규화 강제 중단 → 깨진 출력 없음 → 재실행 1회로 완전 복구
 
+확인함 (클라우드, 2026-09-06 실측):
+- **MERGE 멱등성**: `load_to_bq.py` 2회 연속 → 1회차 inserted=575, 2회차 updated=575 inserted=0, `canonical_total` 575 불변
+- **alert 가드**: 빈 파티션(0행 parquet) → `staging_rows==0` → raise, MERGE 중단
+- **canonical COUNT = spark after**: `jdf.postings_canonical` 575 = Spark 전처리 후 575
+
 아직 보장 못하는 것:
-- **클라우드 MERGE 멱등성**: `cloud/load_to_bq.py`에 `MERGE ON posting_id` + `staging_rows==0` 가드까지 작성했으나 실 BigQuery 미실행 — 설계만
-- **ATS 트랙 ↔ synth canonical 스키마 통합**: 두 트랙 컬럼셋이 달라 `postings_canonical` 공유 시 충돌 가능
+- **ATS 트랙 ↔ synth canonical 스키마 통합**: 두 트랙 컬럼셋이 달라 `postings_canonical` 공유 시 충돌 가능 (synth만 적재함)
 - 동시 실행 경합, 실제 DB 적재 실패, Kafka 스트리밍 트랙 장애 재현
+- Airflow `push_to_cloud=true` 실제 run (코드만, DAG import 확인까지)
+
+## 클라우드 실행 결과 (2026-09-06)
+
+프로젝트 `bright-link-507313-q3` · 버킷 `gs://bright-link-507313-q3-jdf-raw` · 데이터셋 `jdf` · region `asia-northeast1`.
+
+| 단계 | 결과 | 캡처 |
+|---|---|---|
+| `cloud/setup.sh` | API 활성화 + 버킷·데이터셋 생성 | 07 |
+| `run_pipeline.sh --cloud` | GCS 업로드 1파일 70KB → staging 575 → MERGE inserted 575 → `canonical_total` **575** | 08 |
+| MERGE 2회차 | updated 575 / inserted 0 / `canonical_total` **575** (불변, 멱등) | 09 |
+| `dbt run` | PASS=3 (`stg_postings` view + `mart_tech_demand`·`mart_platform_dist` table) | 12 |
+| `dbt test` | PASS=7 (`posting_id`·`skill`·`source_platform` unique+not_null) | 12 |
+| `cloud/query_marts.py` (SQL 서빙) | canonical 575 · mart_tech_demand 7행 (SQL 326 / 요건정의 324 / Python 309 / AWS 290 / GCP 290) · mart_platform_dist 7행 (스킬 태그율 0.96~1.0) | 10 |
+| alert 가드 | 빈 파티션 → `staging_rows==0` → raise | 16 |
+
+**BigQuery `canonical_total` 575 = 로컬 Spark 전처리 후 575 = `read_result.py` 575** — 로컬↔클라우드 건수 일치.
 
 ## 6. 남은 문제와 다음 단계
 
-1. `cloud/setup.sh` → `run_pipeline.sh --cloud` → `dbt run/test` 실제 1회 실행 (인증·리소스 생성 후)
+1. ~~`cloud/setup.sh` → `run_pipeline.sh --cloud` → `dbt run/test`~~ **2026-09-06 실행 완료** (아래 클라우드 결과). 남은 건 Airflow `push_to_cloud` run
 2. Looker Studio 연결 (현재 서빙은 Streamlit + 스크립트 + SQL)
 3. 합성 데이터 리얼리티: 厚労省 job tag 분포, 섹션 템플릿 풀 30~50개, 볼륨 상향
 4. 직무 taxonomy 매핑 · salary 텍스트 파서 (Canonical Schema 전체 매핑)

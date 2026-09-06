@@ -1,0 +1,28 @@
+[0m14:09:44  Running with dbt=1.12.3
+[0m14:09:45  Registered adapter: bigquery=1.12.0
+[0m14:09:45  Found 3 models, 7 data tests, 561 macros
+[0m14:09:45  
+[0m14:09:45  Concurrency: 4 threads (target='dev')
+[0m14:09:45  
+/Users/macbook/dev/career/job-posting-standardization/.venv-dbt/lib/python3.13/site-packages/google/auth/_default.py:113: UserWarning: Your application has authenticated using end user credentials from Google Cloud SDK without a quota project. You might receive a "quota exceeded" or "API not enabled" error. See the following page for troubleshooting: https://cloud.google.com/docs/authentication/adc-troubleshooting/user-creds. 
+  warnings.warn(_CLOUD_SDK_CREDENTIALS_WARNING)
+[0m14:09:46  4 of 7 START test not_null_stg_postings_posting_id ............................. [RUN]
+[0m14:09:46  2 of 7 START test not_null_mart_tech_demand_postings ........................... [RUN]
+[0m14:09:46  3 of 7 START test not_null_mart_tech_demand_skill .............................. [RUN]
+[0m14:09:46  1 of 7 START test not_null_mart_platform_dist_source_platform .................. [RUN]
+[0m14:09:47  3 of 7 PASS not_null_mart_tech_demand_skill .................................... [[32mPASS[0m in 1.00s]
+[0m14:09:47  5 of 7 START test unique_mart_platform_dist_source_platform .................... [RUN]
+[0m14:09:47  2 of 7 PASS not_null_mart_tech_demand_postings ................................. [[32mPASS[0m in 1.02s]
+[0m14:09:47  6 of 7 START test unique_mart_tech_demand_skill ................................ [RUN]
+[0m14:09:47  1 of 7 PASS not_null_mart_platform_dist_source_platform ........................ [[32mPASS[0m in 1.08s]
+[0m14:09:47  7 of 7 START test unique_stg_postings_posting_id ............................... [RUN]
+[0m14:09:47  4 of 7 PASS not_null_stg_postings_posting_id ................................... [[32mPASS[0m in 1.13s]
+[0m14:09:47  6 of 7 PASS unique_mart_tech_demand_skill ...................................... [[32mPASS[0m in 0.64s]
+[0m14:09:48  5 of 7 PASS unique_mart_platform_dist_source_platform .......................... [[32mPASS[0m in 0.88s]
+[0m14:09:48  7 of 7 PASS unique_stg_postings_posting_id ..................................... [[32mPASS[0m in 1.32s]
+[0m14:09:48  
+[0m14:09:48  Finished running 7 data tests in 0 hours 0 minutes and 3.21 seconds (3.21s).
+[0m14:09:48  
+[0m14:09:48  [32mCompleted successfully[0m
+[0m14:09:48  
+[0m14:09:48  Done. PASS=7 WARN=0 ERROR=0 SKIP=0 NO-OP=0 REUSED=0 TOTAL=7

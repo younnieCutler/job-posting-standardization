@@ -1,0 +1,4 @@
+=== 2회차 load_to_bq (MERGE 멱등성) ===
+▶ load gs://bright-link-507313-q3-jdf-raw/canonical/dt=2026-09-06/*.parquet -> bright-link-507313-q3.jdf.staging_postings
+staging_rows=575
+updated=575 inserted=0 canonical_total=575

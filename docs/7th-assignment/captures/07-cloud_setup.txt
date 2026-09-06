@@ -1,0 +1,10 @@
+project=bright-link-507313-q3 region=asia-northeast1 bucket=gs://bright-link-507313-q3-jdf-raw dataset=jdf
+▶ API 활성화
+Operation "operations/acat.p2-822791380300-3df1afd9-ff9c-4b40-b4a4-c835a0fd31b0" finished successfully.
+▶ GCS 버킷
+Creating gs://bright-link-507313-q3-jdf-raw/...
+  생성됨
+▶ BigQuery 데이터셋
+Dataset 'bright-link-507313-q3:jdf' successfully created.
+  생성됨
+완료. 다음: scripts/run_pipeline.sh --cloud

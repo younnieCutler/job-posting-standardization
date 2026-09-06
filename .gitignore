@@ -8,3 +8,9 @@ __pycache__/
 data/golden-set/public-it-postings/
 data/golden-set/public-it-postings-canonical/
 .venv-dashboard/
+.venv-dbt/
+.venv-cloud/
+dbt/target/
+dbt/logs/
+dbt/.user.yml
+dbt/dbt_packages/
