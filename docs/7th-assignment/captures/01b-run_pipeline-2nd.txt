@@ -1,0 +1,20 @@
+  openwork         76
+  mid_tenshoku     73
+
+스킬 키워드 상위 5 (표기 변형 합산)
+  SQL                      326
+  Requirement definition   324
+  Python                   309
+  AWS                      290
+  GCP                      290
+------------------------------------------------------------
+단계별 처리 건수
+------------------------------------------------------------
+1. 생성 (data/raw/*.parquet)   590
+2. Kafka Producer 전송         590
+3. Kafka Consumer 수신         590
+4. Spark 전처리 전           590
+5. Spark 전처리 후 (최종 저장) 575
+------------------------------------------------------------
+최종 저장: data/processed/postings_clean.parquet
+다음: streamlit run app/dashboard.py   (별도 venv: .venv-dashboard)

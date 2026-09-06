@@ -4,7 +4,7 @@
 
 | # | 대상 | 형식 |
 |---|---|---|
-| 01 | `scripts/run_pipeline.sh` 단계별 건수 표 | .txt |
+| 01 | `scripts/run_pipeline.sh` 단계별 건수 표 | .txt ✅ (01, 01b 2회분 — 멱등 확인) |
 | 02 | `python app/test_dashboard.py` 통과 | .txt ✅ |
 | 03 | Streamlit — 일본어 트랙 요약 + 표준화 품질 | .png |
 | 04 | Streamlit — 스킬 신호, `data_ai` 필터 (요청·응답 예시) | .png |
