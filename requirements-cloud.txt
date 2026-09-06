@@ -1,0 +1,6 @@
+# cloud/ 스크립트 (Phase 1) — .venv-airflow 또는 별도 .venv-cloud 에 설치
+google-cloud-storage>=2.16
+google-cloud-bigquery>=3.20
+db-dtypes>=1.2
+pandas>=2.0
+pyarrow>=15
