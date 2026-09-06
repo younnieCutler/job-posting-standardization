@@ -22,23 +22,23 @@
 <div class="banner">
   <b>점선 = 아직 코드에 없음 (계획).</b> 현재 구현된 부분은
   <a href="architecture-diagram-v1.html">architecture-diagram-v1.html</a> 참고.
-  클라우드 계층은 7차시 Phase 1~3에서 구현 예정.
+  클라우드 계층 스크립트(cloud/ · dbt/ · DAG 분기)는 <b>작성 완료</b>, 실제 GCP 실행은 수동 게이트로 미실행.
 </div>
 
 <pre class="mermaid">
 flowchart LR
     G["합성/ATS 트랙<br/>(현재 구현)"] --> P["parquet<br/>data/processed · canonical"]
 
-    P -. Phase 1 .-> GCS["GCS<br/>gs://…-jdf-raw"]
-    GCS -. Phase 1 .-> BQS["BigQuery staging_postings<br/>WRITE_TRUNCATE"]
-    BQS -. Phase 1 .-> MRG["MERGE INTO<br/>jdf.postings_canonical<br/>(posting_id 키)"]
-    MRG -. Phase 2 .-> DBT["dbt Core<br/>stg_postings · mart_tech_demand · mart_platform_dist<br/>dbt test"]
+    P -. 코드있음 .-> GCS["GCS<br/>gs://…-jdf-raw"]
+    GCS -. 코드있음 .-> BQS["BigQuery staging_postings<br/>WRITE_TRUNCATE"]
+    BQS -. 코드있음 .-> MRG["MERGE INTO<br/>jdf.postings_canonical<br/>(posting_id 키)"]
+    MRG -. 코드있음 .-> DBT["dbt Core<br/>stg_postings · mart_tech_demand · mart_platform_dist<br/>dbt test"]
     DBT -. 계획 .-> LK["Looker Studio"]
     MRG -. 구현됨 .-> ST["Streamlit<br/>app/dashboard.py<br/>(로컬 parquet · BQ 마트 읽기 모드)"]
 
-    AF["Airflow DAG<br/>push_to_cloud=true"] -. Phase 3 .-> GCS
-    AF -. Phase 3 .-> MRG
-    AF -. Phase 3 .-> DBT
+    AF["Airflow DAG<br/>push_to_cloud=true"] -. 코드있음 .-> GCS
+    AF -. 코드있음 .-> MRG
+    AF -. 코드있음 .-> DBT
 
     classDef done fill:#ecfdf5,stroke:#059669,color:#065f46
     classDef plan fill:#fffbeb,stroke:#d97706,color:#92400e,stroke-dasharray: 5 4
