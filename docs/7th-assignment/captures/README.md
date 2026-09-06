@@ -23,4 +23,12 @@
 | 17 | 5차시 장애 3종 (기존 `docs/loadtest-logs/*.log` 발췌) | .txt |
 | 18 | 현재 구현 다이어그램 렌더 | .png |
 
-07~16: `cloud/`·`dbt/`·DAG 코드는 저장소에 있으나 **실제 클라우드 미실행**. 해당 슬라이드는 "코드 있음 · 미실행"으로 표시. 실행은 사용자 지시 시.
+## 상태 (2026-09-07)
+
+- **확보 (.txt)**: 01·01b·02·07·08·09·10·11·12·13·16 — 로컬 원샷 + 클라우드 GCS→BQ MERGE→dbt 실행 결과
+- **미확보 (사용자가 aside로 캡처 예정)**:
+  - 03·04·05 — Streamlit 스크린샷 (`.venv-dashboard/bin/streamlit run app/dashboard.py`)
+  - 17 — 5차시 장애 3종 (`docs/loadtest-logs/` 에서 발췌, 파일은 이미 있음)
+  - 18 — `docs/diagrams/architecture-diagram-v1.html` mermaid 렌더 PNG
+  - 06·15 — Airflow run (선택). 15는 `push_to_cloud=true` → 이미 만든 canonical/mart 에 MERGE·덮어쓰기 하므로 실행 전 확인
+- 14 (Streamlit BQ 마트 읽기 모드) — **미채택**. dashboard 는 로컬 parquet 전용, BQ 서빙은 `cloud/query_marts.py` 로 분리
