@@ -17,7 +17,7 @@
 | 11 | BigQuery 콘솔 SQL 에디터 + 결과 그리드 (mart_tech_demand 7행) | .png ✅ · (10 .txt에도 포함) |
 | 12 | `dbt run` PASS=3 + `dbt test` PASS=7 | .txt ✅ |
 | 13 | (10에 포함) mart_tech_demand 7행 / mart_platform_dist 7행 | .txt ✅ |
-| 14 | Streamlit — BQ 마트 읽기 모드 | .png |
+| 14 | Looker Studio — BigQuery `jdf.mart_tech_demand` 막대차트 (스킬별 공고 수) | .png ✅ |
 | 15 | Airflow `push_to_cloud=true` run — 태스크 success | .txt |
 | 16 | alert 가드 — 빈 파티션(0행) → `staging_rows==0` → raise, MERGE 중단 | .txt ✅ |
 | 17 | 5차시 장애 3종 (중복실행/404/강제중단→복구) 로그 발췌 | .txt ✅ |
@@ -27,4 +27,5 @@
 
 - **확보**: 01·01b·02 (.txt) · 03·04·05 (.png Streamlit) · 07·08·09·10·12·13·16 (.txt 클라우드) · 11 (.png BQ 콘솔) · 17 (.txt 장애 3종) · 18 (.png 다이어그램)
 - **미확보 (선택)**: 06·15 — Airflow run. 15는 `push_to_cloud=true` → 이미 만든 canonical/mart 에 MERGE·덮어쓰기 하므로 실행 전 확인 필요
-- 14 (Streamlit BQ 마트 읽기 모드) — **미채택**. dashboard 는 로컬 parquet 전용, BQ 서빙은 `cloud/query_marts.py` + BQ 콘솔(캡처 11)로 대체
+- **미확보 (선택)**: 06 — ATS Airflow run. 15 — Airflow `push_to_cloud` run (기존 canonical/mart 덮어씀, 실행 전 확인)
+- Streamlit BQ 마트 읽기 모드는 미채택 (dashboard 로컬 parquet 전용). BQ 서빙 = `cloud/query_marts.py` + BQ 콘솔(11) + **Looker Studio(14)**
