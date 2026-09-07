@@ -70,7 +70,7 @@ posting_id 중복: 0
 
 ## 클라우드 실행 결과 (2026-09-06)
 
-프로젝트 `bright-link-507313-q3` · 버킷 `gs://bright-link-507313-q3-jdf-raw` · 데이터셋 `jdf` · region `asia-northeast1`.
+프로젝트 `bright-link-507313-q3` · region `asia-northeast1`. **실행·검증 후 데이터셋·버킷은 삭제** (2026-09-07, 무료 체험판 정리). 아래 결과는 실행 당시 값이며 캡처 07~14가 증빙. 재현: `cloud/setup.sh` → `run_pipeline.sh --cloud` → `cloud/load_ats_to_bq.py` → `dbt run`.
 
 | 단계 | 결과 | 캡처 |
 |---|---|---|

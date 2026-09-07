@@ -86,18 +86,18 @@ flowchart LR
 - `posting_id` = `sha256(source_platform + source_posting_id)` 결정적 해시 (두 트랙 공통, dedup·재실행 멱등성 키)
 - 원샷 실행: [`scripts/run_pipeline.sh`](scripts/run_pipeline.sh) — 아래 "7차시" 섹션
 
-### 클라우드 계층 — 실행 완료 (2026-09-06)
+### 클라우드 계층 — 실행 완료 후 정리 (2026-09-07)
 
-합성 트랙 산출물을 GCS → BigQuery `MERGE` → dbt 마트까지 실제로 돌렸습니다. 프로젝트 `bright-link-507313-q3`. 결과·확인은 [`docs/7th-assignment/consolidation.md`](docs/7th-assignment/consolidation.md). 목표 구성 전체도는 [`docs/diagrams/target-architecture.html`](docs/diagrams/target-architecture.html).
+합성 트랙(GCS → BigQuery `MERGE` → dbt) + Public ATS 적재 + Looker Studio 까지 실제로 돌린 뒤, **BigQuery 데이터셋·GCS 버킷은 삭제했습니다** (무료 체험판 정리). 스크립트·dbt 마트 정의·실행 캡처(07~14)는 저장소에 보존 — 위 명령으로 재현. 프로젝트 `bright-link-507313-q3`. 결과·확인은 [`docs/7th-assignment/consolidation.md`](docs/7th-assignment/consolidation.md). 목표 구성 전체도는 [`docs/diagrams/target-architecture.html`](docs/diagrams/target-architecture.html).
 
 | 항목 | 상태 | 위치 |
 |---|---|---|
-| GCS 업로드 · BigQuery staging + `MERGE ON posting_id` | ✅ 실행 (synth canonical 575, 2회차 멱등) | [`cloud/`](cloud/) |
-| Public ATS → BigQuery `jdf.ats_postings` | ✅ 실행 (25,684행, 300개사, greenhouse 22,110 / ashby 3,574) | [`cloud/load_ats_to_bq.py`](cloud/load_ats_to_bq.py) |
+| GCS 업로드 · BigQuery staging + `MERGE ON posting_id` | ✅ 실행 (synth canonical 575, 2회차 멱등) · 리소스 정리됨 | [`cloud/`](cloud/) |
+| Public ATS → BigQuery `jdf.ats_postings` | ✅ 실행 (25,684행, 300개사) · 리소스 정리됨 | [`cloud/load_ats_to_bq.py`](cloud/load_ats_to_bq.py) |
 | dbt Core — synth 마트 7종 + ATS 마트 5종 (`stg_ats_postings` + `mart_ats_*`) + `dbt test` | ✅ 실행 (`dbt test` PASS=17) | [`dbt/`](dbt/) |
 | alert 가드 — 빈 파티션 → `staging_rows==0` raise | ✅ 실증 | [`cloud/load_to_bq.py`](cloud/load_to_bq.py) |
 | Airflow `on_failure_callback` · `push_to_cloud` 브랜치 | 코드 있음 · DAG import 확인 (run 미실행) | [`dags/collect_postings_dag.py`](dags/collect_postings_dag.py) |
-| Looker Studio 연동 | ✅ 실행 | [리포트](https://datastudio.google.com/reporting/a69e9404-fea5-44cd-ac55-efc26c06720c) — 스코어카드 + 직무×경력 + 스킬 수요 (캡처 14). 설계: [`docs/7th-assignment/looker-bi-design.md`](docs/7th-assignment/looker-bi-design.md) |
+| Looker Studio 연동 | ✅ 실행 (캡처 14 = 실행 증빙; BQ 정리로 리포트 데이터는 끊김) | 스코어카드 + 직무×경력 + 스킬 수요. 5페이지 설계: [`docs/7th-assignment/looker-bi-design.md`](docs/7th-assignment/looker-bi-design.md) |
 | 직무 taxonomy 매핑 · salary 텍스트 파서 | 계획 | Canonical Schema 전체 매핑의 일부 |
 | ATS ↔ synth 데이터셋 병합 | **하지 않음 (원칙)** | 별도 테이블 `ats_postings` / `postings_canonical`. Looker 리포트도 데이터셋별 섹션 분리 |
 | 크론 스케줄 등록 | 계획 | 현재는 `airflow dags test` 수동 트리거만 |
