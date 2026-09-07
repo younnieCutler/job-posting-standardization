@@ -80,6 +80,7 @@ posting_id 중복: 0
 | `dbt run` | PASS=3 (`stg_postings` view + `mart_tech_demand`·`mart_platform_dist` table) | 12 |
 | `dbt test` | PASS=7 (`posting_id`·`skill`·`source_platform` unique+not_null) | 12 |
 | `cloud/query_marts.py` (SQL 서빙) | canonical 575 · mart_tech_demand 7행 (SQL 326 / 요건정의 324 / Python 309 / AWS 290 / GCP 290) · mart_platform_dist 7행 (스킬 태그율 0.96~1.0) | 10 |
+| Looker Studio | BigQuery 커넥터 → `jdf.mart_tech_demand` 막대차트 (스킬별 공고 수) | 14 |
 | alert 가드 | 빈 파티션 → `staging_rows==0` → raise | 16 |
 
 **BigQuery `canonical_total` 575 = 로컬 Spark 전처리 후 575 = `read_result.py` 575** — 로컬↔클라우드 건수 일치.
@@ -87,7 +88,7 @@ posting_id 중복: 0
 ## 6. 남은 문제와 다음 단계
 
 1. ~~`cloud/setup.sh` → `run_pipeline.sh --cloud` → `dbt run/test`~~ **2026-09-06 실행 완료** (아래 클라우드 결과). 남은 건 Airflow `push_to_cloud` run
-2. Looker Studio 연결 (현재 서빙은 Streamlit + 스크립트 + SQL)
+2. ~~Looker Studio 연결~~ **완료** (캡처 14). Airflow `push_to_cloud` run 은 남음
 3. 합성 데이터 리얼리티: 厚労省 job tag 분포, 섹션 템플릿 풀 30~50개, 볼륨 상향
 4. 직무 taxonomy 매핑 · salary 텍스트 파서 (Canonical Schema 전체 매핑)
 5. 크론 스케줄 등록 (현재 `airflow dags test` 수동 트리거)

@@ -130,7 +130,7 @@ flowchart LR
 | dbt Core marts（`stg_postings`, `mart_tech_demand`, `mart_platform_dist`）+ `dbt test` | ✅ 実行（`dbt run` PASS=3、`dbt test` PASS=7） | [`dbt/`](dbt/) |
 | alert ガード — 空パーティション → `staging_rows==0` raise | ✅ 実証 | [`cloud/load_to_bq.py`](cloud/load_to_bq.py) |
 | Airflow `on_failure_callback` · `push_to_cloud` 分岐 | コードあり · DAG import 確認（run 未実行） | [`dags/collect_postings_dag.py`](dags/collect_postings_dag.py) |
-| Looker Studio 連携 | 計画 | サービングは Streamlit + `scripts/read_result.py` + `cloud/query_marts.py`（SQL） |
+| Looker Studio 連携 | ✅ 実行 | `jdf.mart_tech_demand` の棒グラフ（キャプチャ 14）。サービング: Streamlit + `read_result.py` + `query_marts.py` + Looker |
 | 職種 taxonomy マッピング · 給与テキストのパーサ | 計画 | Canonical Schema 全体マッピングの一部 |
 | ATS トラック ↔ synth canonical のスキーマ統合 | 未検証 | 2トラックの列セットが違い `postings_canonical` 共有時に衝突しうる（synth のみ投入） |
 

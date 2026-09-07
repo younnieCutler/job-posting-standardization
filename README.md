@@ -96,7 +96,7 @@ flowchart LR
 | dbt Core marts (`stg_postings`, `mart_tech_demand`, `mart_platform_dist`) + `dbt test` | ✅ 실행 (`dbt run` PASS=3, `dbt test` PASS=7) | [`dbt/`](dbt/) |
 | alert 가드 — 빈 파티션 → `staging_rows==0` raise | ✅ 실증 | [`cloud/load_to_bq.py`](cloud/load_to_bq.py) |
 | Airflow `on_failure_callback` · `push_to_cloud` 브랜치 | 코드 있음 · DAG import 확인 (run 미실행) | [`dags/collect_postings_dag.py`](dags/collect_postings_dag.py) |
-| Looker Studio 연동 | 계획 | 서빙은 Streamlit + `scripts/read_result.py` + `cloud/query_marts.py`(SQL) |
+| Looker Studio 연동 | ✅ 실행 | `jdf.mart_tech_demand` 막대차트 (캡처 14). 서빙: Streamlit + `read_result.py` + `query_marts.py` + Looker |
 | 직무 taxonomy 매핑 · salary 텍스트 파서 | 계획 | Canonical Schema 전체 매핑의 일부 |
 | ATS 트랙 ↔ synth canonical 스키마 통합 | 미검증 | 두 트랙 컬럼셋이 달라 `postings_canonical` 공유 시 충돌 가능 (synth만 적재) |
 | 크론 스케줄 등록 | 계획 | 현재는 `airflow dags test` 수동 트리거만 |
@@ -166,7 +166,7 @@ airflow dags test collect_public_postings 2026-08-26 -c '{"companies": 8}'
 
 **저장 위치/포맷**: `data/golden-set/public-it-postings/dt=<날짜>/postings.csv`(수집 원본), `data/golden-set/public-it-postings-canonical/dt=<날짜>/*.parquet`(정규화 결과, `posting_id` 포함)
 
-**실제 구현 vs 계획**: DAG로 수집+정규화 자동화, 파라미터 재실행 완료. retry/재시도, 크론 스케줄 등록(현재는 수동 트리거로만 검증), BigQuery MERGE/dbt/Looker 연결은 이후 세션 범위.
+**실제 구현 vs 계획**: DAG로 수집+정규화 자동화, 파라미터 재실행 완료. retry/재시도, 크론 스케줄 등록(현재는 수동 트리거로만 검증), BigQuery MERGE/dbt/Looker 연결은 7차시에서 완료 (§3 클라우드 계층 표).
 
 ### 5차시 과제 — 부하·장애·복구 실험 (제출용)
 
