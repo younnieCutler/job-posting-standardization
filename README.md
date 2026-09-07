@@ -97,7 +97,7 @@ flowchart LR
 | dbt Core — synth 마트 7종 + ATS 마트 5종 (`stg_ats_postings` + `mart_ats_*`) + `dbt test` | ✅ 실행 (`dbt test` PASS=17) | [`dbt/`](dbt/) |
 | alert 가드 — 빈 파티션 → `staging_rows==0` raise | ✅ 실증 | [`cloud/load_to_bq.py`](cloud/load_to_bq.py) |
 | Airflow `on_failure_callback` · `push_to_cloud` 브랜치 | 코드 있음 · DAG import 확인 (run 미실행) | [`dags/collect_postings_dag.py`](dags/collect_postings_dag.py) |
-| Looker Studio 연동 | ✅ 실행 | [리포트](https://lookerstudio.google.com/reporting/a69e9404-fea5-44cd-ac55-efc26c06720c) — 스코어카드 + 직무×경력 + 스킬 수요 (캡처 14). 설계: [`docs/7th-assignment/looker-bi-design.md`](docs/7th-assignment/looker-bi-design.md) |
+| Looker Studio 연동 | ✅ 실행 | [리포트](https://datastudio.google.com/reporting/a69e9404-fea5-44cd-ac55-efc26c06720c) — 스코어카드 + 직무×경력 + 스킬 수요 (캡처 14). 설계: [`docs/7th-assignment/looker-bi-design.md`](docs/7th-assignment/looker-bi-design.md) |
 | 직무 taxonomy 매핑 · salary 텍스트 파서 | 계획 | Canonical Schema 전체 매핑의 일부 |
 | ATS ↔ synth 데이터셋 병합 | **하지 않음 (원칙)** | 별도 테이블 `ats_postings` / `postings_canonical`. Looker 리포트도 데이터셋별 섹션 분리 |
 | 크론 스케줄 등록 | 계획 | 현재는 `airflow dags test` 수동 트리거만 |

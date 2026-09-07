@@ -17,7 +17,7 @@
 | 11 | BigQuery 콘솔 SQL 에디터 + 결과 그리드 (mart_tech_demand 7행) | .png ✅ · (10 .txt에도 포함) |
 | 12 | `dbt run` PASS=3 + `dbt test` PASS=7 | .txt ✅ |
 | 13 | (10에 포함) mart_tech_demand 7행 / mart_platform_dist 7행 | .txt ✅ |
-| 14 | Looker Studio — BigQuery dbt 마트 리포트 (스코어카드 + 직무×경력 + 스킬 수요). [링크](https://lookerstudio.google.com/reporting/a69e9404-fea5-44cd-ac55-efc26c06720c) | .png ✅ |
+| 14 | Looker Studio — BigQuery dbt 마트 리포트 (스코어카드 + 직무×경력 + 스킬 수요). [링크](https://datastudio.google.com/reporting/a69e9404-fea5-44cd-ac55-efc26c06720c) | .png ✅ |
 | 15 | Airflow `push_to_cloud=true` run — 태스크 success | .txt |
 | 16 | alert 가드 — 빈 파티션(0행) → `staging_rows==0` → raise, MERGE 중단 | .txt ✅ |
 | 17 | 5차시 장애 3종 (중복실행/404/강제중단→복구) 로그 발췌 | .txt ✅ |
