@@ -102,7 +102,7 @@ flowchart LR
 | ATS ↔ synth 데이터셋 병합 | **하지 않음 (원칙)** | 별도 테이블 `ats_postings` / `postings_canonical`. Looker 리포트도 데이터셋별 섹션 분리 |
 | 크론 스케줄 등록 | 계획 | 현재는 `airflow dags test` 수동 트리거만 |
 
-아키텍처 다이어그램: [`docs/diagrams/architecture-diagram-v1.html`](docs/diagrams/architecture-diagram-v1.html)(현재 구현) · [`docs/diagrams/target-architecture.html`](docs/diagrams/target-architecture.html)(클라우드 포함 목표).
+아키텍처 다이어그램: [`docs/diagrams/architecture-diagram-v1.html`](docs/diagrams/architecture-diagram-v1.html)(로컬 파이프라인) · [`docs/diagrams/cloud-architecture.html`](docs/diagrams/cloud-architecture.html)(**Google Cloud 실행 완료** — GCS→BQ MERGE→dbt→Looker, 합성/ATS 트랙 분리).
 
 ## 4. 진행 상태
 

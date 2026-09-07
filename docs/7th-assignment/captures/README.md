@@ -21,7 +21,8 @@
 | 15 | Airflow `push_to_cloud=true` run — 태스크 success | .txt |
 | 16 | alert 가드 — 빈 파티션(0행) → `staging_rows==0` → raise, MERGE 중단 | .txt ✅ |
 | 17 | 5차시 장애 3종 (중복실행/404/강제중단→복구) 로그 발췌 | .txt ✅ |
-| 18 | 현재 구현 다이어그램 mermaid 렌더 | .png ✅ |
+| 18 | 로컬 파이프라인 다이어그램 (`architecture-diagram-v1.html`) | .png ✅ |
+| 18b | Google Cloud 아키텍처 (`cloud-architecture.html`) — GCS→BQ MERGE→dbt→Looker, 합성/ATS 분리 | .png ✅ |
 
 ## 상태 (2026-09-07)
 
