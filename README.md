@@ -88,7 +88,7 @@ flowchart LR
 
 ### 클라우드 계층 — 실행 완료 후 정리 (2026-09-07)
 
-합성 트랙(GCS → BigQuery `MERGE` → dbt) + Public ATS 적재 + Looker Studio 까지 실제로 돌린 뒤, **BigQuery 데이터셋·GCS 버킷은 삭제했습니다** (무료 체험판 정리). 스크립트·dbt 마트 정의·실행 캡처(07~14)는 저장소에 보존 — 위 명령으로 재현. 프로젝트 `bright-link-507313-q3`. 결과·확인은 [`docs/7th-assignment/consolidation.md`](docs/7th-assignment/consolidation.md). 목표 구성 전체도는 [`docs/diagrams/target-architecture.html`](docs/diagrams/target-architecture.html).
+합성 트랙(GCS → BigQuery `MERGE` → dbt) + Public ATS 적재 + Looker Studio 까지 실제로 돌린 뒤, **BigQuery 데이터셋·GCS 버킷은 삭제했습니다** (무료 체험판 정리). 스크립트·dbt 마트 정의·실행 캡처(07~14)는 저장소에 보존 — 위 명령으로 재현. 프로젝트 `bright-link-507313-q3`. 결과·확인은 [`docs/7th-assignment/consolidation.md`](docs/7th-assignment/consolidation.md). Google Cloud 아키텍처 그림: [`docs/diagrams/cloud-architecture.html`](docs/diagrams/cloud-architecture.html).
 
 | 항목 | 상태 | 위치 |
 |---|---|---|

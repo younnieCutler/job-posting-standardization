@@ -122,7 +122,7 @@ flowchart LR
 
 ### クラウド層 — 実行済み（2026-09-06）
 
-生成トラックの成果物を GCS → BigQuery `MERGE` → dbt マートまで実際に流しました。プロジェクト `bright-link-507313-q3`。結果は [`docs/7th-assignment/consolidation.md`](docs/7th-assignment/consolidation.md)。目標構成の全体図は [`docs/diagrams/target-architecture.html`](docs/diagrams/target-architecture.html)。
+生成トラックの成果物を GCS → BigQuery `MERGE` → dbt マートまで実際に流しました。プロジェクト `bright-link-507313-q3`。結果は [`docs/7th-assignment/consolidation.md`](docs/7th-assignment/consolidation.md)。Google Cloud アーキテクチャ図: [`docs/diagrams/cloud-architecture.html`](docs/diagrams/cloud-architecture.html)。
 
 | 項目 | 状態 | 場所 |
 |---|---|---|
@@ -257,7 +257,7 @@ python cloud/query_marts.py
 - [`docs/architecture_decision_record.ja.md`](docs/architecture_decision_record.ja.md) — なぜこの道具・この方針かの記録
 - [`docs/data-spec.ja.md`](docs/data-spec.ja.md) — データの項目定義、番号の振り方、品質チェック
 - [`docs/golden-set/real-postings-golden-set.csv`](docs/golden-set/real-postings-golden-set.csv) — 実際の求人から書き写した表記ゆれのサンプル
-- [`docs/diagrams/architecture-diagram-v1.html`](docs/diagrams/architecture-diagram-v1.html) — 現在の実装図 · [`docs/diagrams/target-architecture.html`](docs/diagrams/target-architecture.html) — クラウド込みの目標図
+- [`docs/diagrams/architecture-diagram-v1.html`](docs/diagrams/architecture-diagram-v1.html) — ローカルパイプライン図 · [`docs/diagrams/cloud-architecture.html`](docs/diagrams/cloud-architecture.html) — Google Cloud 図
 
 ## ファイル構成
 

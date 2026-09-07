@@ -1,78 +1,180 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>JDF — Google Cloud 아키텍처 (실행 완료)</title>
-<style>
-  body { font-family: -apple-system, "Helvetica Neue", "Noto Sans KR", sans-serif;
-         max-width: 1200px; margin: 2rem auto; padding: 0 1.5rem; color: #1a1a1a; }
-  h1 { font-size: 1.4rem; margin-bottom: .3rem; }
-  .banner { background: #ecfdf5; border-left: 4px solid #059669; padding: .8rem 1rem;
-            border-radius: 6px; font-size: .92rem; margin: 1rem 0 1.5rem; }
-  .banner b { color: #065f46; }
-  .note { font-size: .85rem; color: #555; margin-top: 1.5rem; }
-  code { background: #f3f4f6; padding: .1rem .35rem; border-radius: 4px; }
-</style>
-<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
-<script>mermaid.initialize({ startOnLoad: true, theme: "neutral", flowchart: { htmlLabels: true } });</script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JDF — Google Cloud 아키텍처</title>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --color-paper:  #f5f5f5;
+      --color-ink:    #2d3142;
+      --color-muted:  #4f5d75;
+      --color-accent: #eb6c36;
+      --font-sans:  'Geist', system-ui, sans-serif;
+      --font-serif: 'Instrument Serif', serif;
+      --font-mono:  'Geist Mono', ui-monospace, monospace;
+    }
+    body {
+      font-family: var(--font-sans);
+      background: var(--color-paper);
+      color: var(--color-ink);
+      min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      padding: 3rem 2rem;
+    }
+    .frame { max-width: 1140px; width: 100%; }
+    .eyebrow {
+      font-family: var(--font-mono);
+      font-size: 0.66rem; font-weight: 500;
+      letter-spacing: 0.18em; text-transform: uppercase;
+      color: var(--color-muted); margin-bottom: 0.5rem;
+    }
+    h1 {
+      font-family: var(--font-serif);
+      font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem);
+      font-weight: 400; letter-spacing: -0.02em; line-height: 1.15;
+      margin-bottom: 0.4rem;
+    }
+    .sub {
+      font-size: 0.9rem; color: var(--color-muted);
+      line-height: 1.5; max-width: 66ch; margin-bottom: 1.5rem;
+    }
+    svg { width: 100%; min-width: 940px; display: block; }
+  </style>
 </head>
 <body>
-<h1>JDF — Google Cloud 아키텍처 (2026-09-07 실행 완료)</h1>
-<div class="banner">
-  <b>실선 = 실제로 돌아간 경로</b> (2026-09-07 실행·검증 후 BigQuery 데이터셋·GCS 버킷 삭제 — 스크립트·마트 정의·캡처 07~14가 증빙, 위 명령으로 재현). 프로젝트 <code>bright-link-507313-q3</code> · region <code>asia-northeast1</code>.
-  두 데이터셋(합성 / Public ATS)은 <b>클라우드에서도 절대 병합하지 않는다</b> —
-  BigQuery 테이블이 <code>postings_canonical</code> / <code>ats_postings</code> 로 분리, Looker 리포트도 섹션 분리.
-  로컬 파이프라인만 보려면 <a href="architecture-diagram-v1.html">architecture-diagram-v1.html</a>.
-</div>
+  <div class="frame">
+    <p class="eyebrow">Architecture · JDF 7차시</p>
+    <h1>Google Cloud 아키텍처 — 실행 후 정리</h1>
+    <p class="sub">합성 트랙(GCS → BigQuery <code>MERGE</code>)과 공개 ATS 트랙(직접 적재)이 각각 BigQuery로 올라가 dbt 마트가 되고, Looker Studio가 읽는다. 실선은 실제로 돌아간 경로 — 실행·검증 뒤 BigQuery 데이터셋·GCS 버킷은 삭제했다(2026-09-07, 무료 체험판 정리). 스크립트·dbt 마트 정의·캡처 07–14로 재현.</p>
 
-<pre class="mermaid">
-flowchart LR
-    subgraph SYN["합성 트랙 — Japan Synthetic (표준화 검증)"]
-        direction LR
-        S1["generate → Kafka → spark_preprocess<br/>data/processed/postings_clean.parquet<br/>(575행)"]
-        S1 --> SU["cloud/upload_to_gcs.py"]
-        SU --> SGCS["GCS<br/>gs://…-jdf-raw/canonical/dt=…"]
-        SGCS --> SST["cloud/load_to_bq.py<br/>→ jdf.staging_postings<br/>(WRITE_TRUNCATE)"]
-        SST --> SMRG["MERGE ON posting_id<br/>→ jdf.postings_canonical<br/>(575 · 멱등: 2회차 inserted 0)"]
-        SMRG --> SDBT["dbt: stg_postings<br/>→ mart_tech_demand · platform_dist · seniority_dist<br/>· salary_format · company_activity · monthly_intake · overview"]
-    end
+    <svg viewBox="0 0 1060 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="jdf-cloud-arch-title jdf-cloud-arch-desc">
+      <title id="jdf-cloud-arch-title">JDF Google Cloud 아키텍처</title>
+      <desc id="jdf-cloud-arch-desc">합성 트랙의 정제 parquet이 Cloud Storage를 거쳐 BigQuery staging으로 적재된 뒤 posting_id 키로 MERGE되고, 공개 ATS parquet은 BigQuery ats_postings로 직접 적재된다. 두 갈래가 dbt Core 마트 12종으로 합쳐지고 Looker Studio 리포트가 이를 읽는다. Airflow push_to_cloud 분기는 코드만 있고 실행하지 않았다.</desc>
+      <defs>
+        <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#4f5d75"/></marker>
+        <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#eb6c36"/></marker>
+      </defs>
 
-    subgraph ATS["ATS 트랙 — Public ATS (미국·글로벌 표본)"]
-        direction LR
-        A1["collect_public_ats_postings.py<br/>(Greenhouse · Ashby API)<br/>→ spark_normalize<br/>→ public-it-postings-canonical/ (25,684행)"]
-        A1 --> AL["cloud/load_ats_to_bq.py<br/>→ jdf.ats_postings<br/>(WRITE_TRUNCATE · MERGE 없음)"]
-        AL --> ADBT["dbt: stg_ats_postings<br/>→ mart_ats_company · location · department<br/>· skill_demand · overview"]
-    end
+      <rect width="100%" height="100%" fill="#f5f5f5"/>
 
-    SDBT --> LK["Looker Studio 리포트<br/>datastudio.google.com/…/a69e9404<br/>(Synthetic 섹션 / ATS 섹션 분리)"]
-    ADBT --> LK
+      <!-- ============ ZONES ============ -->
+      <rect x="32" y="88" width="768" height="112" rx="8" fill="rgba(45,49,66,0.02)" stroke="rgba(45,49,66,0.10)" stroke-width="0.8"/>
+      <rect x="52" y="92" width="196" height="12" rx="2" fill="#f5f5f5"/>
+      <text x="150" y="101" fill="rgba(45,49,66,0.42)" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.14em">합성 트랙 → BigQuery (MERGE)</text>
 
-    SMRG -. 로컬 대체 .-> QM["cloud/query_marts.py · BigQuery 콘솔 SQL<br/>(서빙 = SQL 조회)"]
+      <rect x="32" y="284" width="768" height="112" rx="8" fill="rgba(45,49,66,0.02)" stroke="rgba(45,49,66,0.10)" stroke-width="0.8"/>
+      <rect x="52" y="288" width="220" height="12" rx="2" fill="#f5f5f5"/>
+      <text x="162" y="297" fill="rgba(45,49,66,0.42)" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.14em">공개 ATS 트랙 → BigQuery (직접 적재)</text>
 
-    AF["Airflow DAG<br/>collect_public_postings<br/>push_to_cloud=true"]
-    AF -. 코드있음 · run 미실행 .-> AL
-    AF -. 코드있음 · run 미실행 .-> SMRG
-    AF -. 코드있음 · run 미실행 .-> SDBT
+      <!-- ============ ARROWS ============ -->
+      <line x1="184" y1="148" x2="232" y2="148" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <line x1="376" y1="148" x2="432" y2="148" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <line x1="592" y1="148" x2="640" y2="148" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <line x1="232" y1="344" x2="288" y2="344" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <!-- MERGE → dbt (vertical) -->
+      <line x1="712" y1="176" x2="712" y2="312" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <rect x="694" y="238" width="36" height="12" rx="2" fill="#f5f5f5"/>
+      <text x="712" y="247" fill="#7a8399" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.06em">MODEL</text>
+      <!-- ATS BQ → dbt (horizontal) -->
+      <line x1="472" y1="344" x2="648" y2="344" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <!-- dbt → Looker (accent focal path, elbow up-right) -->
+      <path d="M 808,344 H 832 Q 840,344 840,336 V 248 Q 840,240 848,240 H 872" fill="none" stroke="#eb6c36" stroke-width="1.4" marker-end="url(#arrow-accent)"/>
+      <rect x="822" y="270" width="36" height="12" rx="2" fill="#f5f5f5"/>
+      <text x="840" y="279" fill="#b4531f" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.06em">SERVE</text>
+      <!-- Airflow → BQ staging (dashed, up, not run) -->
+      <line x1="512" y1="220" x2="512" y2="176" stroke="rgba(45,49,66,0.45)" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
 
-    classDef syn fill:#fff7ed,stroke:#ea580c,color:#7c2d12
-    classDef ats fill:#ecfeff,stroke:#0891b2,color:#164e63
-    classDef bq fill:#ecfdf5,stroke:#059669,color:#065f46
-    classDef lk fill:#fdf4ff,stroke:#a21caf,color:#701a75
-    classDef plan fill:#fffbeb,stroke:#d97706,color:#92400e,stroke-dasharray: 5 4
-    class S1,SU,SGCS syn
-    class A1 ats
-    class SST,SMRG,SDBT,AL,ADBT,QM bq
-    class LK lk
-    class AF plan
-</pre>
+      <!-- ============ NODES ============ -->
+      <!-- L1 : processed parquet -->
+      <rect x="48" y="120" width="136" height="56" rx="6" fill="#f5f5f5"/>
+      <rect x="48" y="120" width="136" height="56" rx="6" fill="rgba(45,49,66,0.05)" stroke="#4f5d75" stroke-width="1"/>
+      <rect x="56" y="126" width="52" height="12" rx="2" fill="transparent" stroke="rgba(45,49,66,0.40)" stroke-width="0.8"/>
+      <text x="82" y="135" fill="rgba(45,49,66,0.8)" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">PARQUET</text>
+      <text x="116" y="152" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">정제 데이터</text>
+      <text x="116" y="167" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">data/processed · 575</text>
 
-<p class="note">
-  <b>dbt</b>: <code>.venv-dbt</code> · <code>dbt-bigquery 1.12</code> · <code>dbt run</code> 전체 통과 · <code>dbt test</code> PASS=17
-  (posting_id / skill / source_platform / company_name / … unique + not_null).
-  <b>MERGE 멱등</b>: <code>load_to_bq.py</code> 2회 연속 → 1회차 inserted 575, 2회차 updated 575 inserted 0, <code>canonical_total</code> 575 불변.
-  <b>alert 가드</b>: 빈 파티션 → <code>staging_rows == 0</code> → raise (실증).
-  <b>아직 안 함</b>: Airflow <code>push_to_cloud=true</code> 전체 DAG run (import 확인까지), 급여 금액 파싱, ATS 직무 분류(taxonomy).
-</p>
+      <!-- GCS : Cloud Storage (external) -->
+      <rect x="232" y="120" width="144" height="56" rx="6" fill="#f5f5f5"/>
+      <rect x="232" y="120" width="144" height="56" rx="6" fill="rgba(45,49,66,0.03)" stroke="rgba(45,49,66,0.30)" stroke-width="1"/>
+      <rect x="240" y="126" width="26" height="12" rx="2" fill="transparent" stroke="rgba(45,49,66,0.35)" stroke-width="0.8"/>
+      <text x="253" y="135" fill="rgba(45,49,66,0.7)" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">GCS</text>
+      <text x="304" y="152" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Cloud Storage</text>
+      <text x="304" y="167" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">…-jdf-raw/canonical/</text>
+
+      <!-- BQS : BigQuery staging -->
+      <rect x="432" y="120" width="160" height="56" rx="6" fill="#f5f5f5"/>
+      <rect x="432" y="120" width="160" height="56" rx="6" fill="rgba(45,49,66,0.05)" stroke="#4f5d75" stroke-width="1"/>
+      <rect x="440" y="126" width="22" height="12" rx="2" fill="transparent" stroke="rgba(45,49,66,0.40)" stroke-width="0.8"/>
+      <text x="451" y="135" fill="rgba(45,49,66,0.8)" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">BQ</text>
+      <text x="512" y="152" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">staging_postings</text>
+      <text x="512" y="167" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">WRITE_TRUNCATE</text>
+
+      <!-- MRG : MERGE → canonical -->
+      <rect x="640" y="120" width="144" height="56" rx="6" fill="#f5f5f5"/>
+      <rect x="640" y="120" width="144" height="56" rx="6" fill="rgba(45,49,66,0.05)" stroke="#2d3142" stroke-width="1"/>
+      <rect x="648" y="126" width="38" height="12" rx="2" fill="transparent" stroke="rgba(45,49,66,0.40)" stroke-width="0.8"/>
+      <text x="667" y="135" fill="rgba(45,49,66,0.8)" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">MERGE</text>
+      <text x="712" y="152" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">postings_canonical</text>
+      <text x="712" y="167" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">posting_id · 575 · 멱등</text>
+
+      <!-- AF : Airflow (async / dashed / not run) -->
+      <rect x="160" y="220" width="432" height="40" rx="6" fill="#f5f5f5"/>
+      <rect x="160" y="220" width="432" height="40" rx="6" fill="rgba(45,49,66,0.02)" stroke="rgba(45,49,66,0.20)" stroke-width="1" stroke-dasharray="4,3"/>
+      <rect x="168" y="226" width="26" height="12" rx="2" fill="transparent" stroke="rgba(45,49,66,0.35)" stroke-width="0.8"/>
+      <text x="181" y="235" fill="rgba(45,49,66,0.7)" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">DAG</text>
+      <text x="376" y="244" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Airflow push_to_cloud — 코드만, run 미실행</text>
+
+      <!-- L2 : ATS canonical parquet -->
+      <rect x="48" y="316" width="184" height="56" rx="6" fill="#f5f5f5"/>
+      <rect x="48" y="316" width="184" height="56" rx="6" fill="rgba(45,49,66,0.05)" stroke="#4f5d75" stroke-width="1"/>
+      <rect x="56" y="322" width="52" height="12" rx="2" fill="transparent" stroke="rgba(45,49,66,0.40)" stroke-width="0.8"/>
+      <text x="82" y="331" fill="rgba(45,49,66,0.8)" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">PARQUET</text>
+      <text x="140" y="348" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">ATS canonical</text>
+      <text x="140" y="363" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">public-it… · 25,684</text>
+
+      <!-- BQA : BigQuery ats_postings -->
+      <rect x="288" y="316" width="184" height="56" rx="6" fill="#f5f5f5"/>
+      <rect x="288" y="316" width="184" height="56" rx="6" fill="rgba(45,49,66,0.05)" stroke="#4f5d75" stroke-width="1"/>
+      <rect x="296" y="322" width="22" height="12" rx="2" fill="transparent" stroke="rgba(45,49,66,0.40)" stroke-width="0.8"/>
+      <text x="307" y="331" fill="rgba(45,49,66,0.8)" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">BQ</text>
+      <text x="380" y="348" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">ats_postings</text>
+      <text x="380" y="363" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">WRITE_TRUNCATE · 25,684</text>
+
+      <!-- DBT : dbt Core -->
+      <rect x="648" y="312" width="160" height="64" rx="6" fill="#f5f5f5"/>
+      <rect x="648" y="312" width="160" height="64" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <rect x="656" y="318" width="24" height="12" rx="2" fill="transparent" stroke="rgba(45,49,66,0.40)" stroke-width="0.8"/>
+      <text x="668" y="327" fill="rgba(45,49,66,0.8)" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">DBT</text>
+      <text x="728" y="344" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">dbt Core</text>
+      <text x="728" y="359" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">마트 12 · stg 2</text>
+      <text x="728" y="371" fill="#7a8399" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">dbt test PASS=17</text>
+
+      <!-- LK : Looker Studio (FOCAL) -->
+      <rect x="872" y="196" width="160" height="88" rx="6" fill="#f5f5f5"/>
+      <rect x="872" y="196" width="160" height="88" rx="6" fill="rgba(235,108,54,0.08)" stroke="#eb6c36" stroke-width="1.2"/>
+      <rect x="880" y="204" width="20" height="12" rx="2" fill="transparent" stroke="rgba(235,108,54,0.55)" stroke-width="0.8"/>
+      <text x="890" y="213" fill="#b4531f" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">BI</text>
+      <text x="952" y="238" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Looker Studio</text>
+      <text x="952" y="254" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">datastudio…/a69e9404</text>
+      <text x="952" y="268" fill="#7a8399" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">두 데이터셋 섹션 분리</text>
+
+      <!-- ============ LEGEND ============ -->
+      <line x1="32" y1="524" x2="1028" y2="524" stroke="rgba(45,49,66,0.10)" stroke-width="0.8"/>
+      <text x="32" y="544" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.14em">LEGEND</text>
+      <rect x="132" y="536" width="16" height="10" rx="2" fill="rgba(45,49,66,0.05)" stroke="#4f5d75" stroke-width="1"/>
+      <text x="156" y="544" fill="#4f5d75" font-size="9" font-family="'Geist', sans-serif">저장소 · BQ 테이블</text>
+      <rect x="300" y="536" width="16" height="10" rx="2" fill="rgba(45,49,66,0.03)" stroke="rgba(45,49,66,0.30)" stroke-width="1"/>
+      <text x="324" y="544" fill="#4f5d75" font-size="9" font-family="'Geist', sans-serif">Cloud Storage</text>
+      <rect x="432" y="536" width="16" height="10" rx="2" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <text x="456" y="544" fill="#4f5d75" font-size="9" font-family="'Geist', sans-serif">변환 단계</text>
+      <rect x="552" y="536" width="16" height="10" rx="2" fill="rgba(45,49,66,0.02)" stroke="rgba(45,49,66,0.20)" stroke-width="1" stroke-dasharray="4,3"/>
+      <text x="576" y="544" fill="#4f5d75" font-size="9" font-family="'Geist', sans-serif">코드만 · 미실행</text>
+      <rect x="700" y="536" width="16" height="10" rx="2" fill="rgba(235,108,54,0.08)" stroke="#eb6c36" stroke-width="1.2"/>
+      <text x="724" y="544" fill="#4f5d75" font-size="9" font-family="'Geist', sans-serif">서빙 엔드포인트</text>
+    </svg>
+  </div>
 </body>
 </html>
