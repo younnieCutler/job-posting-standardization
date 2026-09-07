@@ -14,7 +14,11 @@ typed as (
         tier,
         safe_cast(salary_min as numeric)   as salary_min,
         safe_cast(salary_max as numeric)   as salary_max,
+        nullif(trim(salary_type), '')      as salary_type,
+        nullif(trim(employment_type), '')  as employment_type,
+        nullif(trim(location), '')         as location,
         safe_cast(posted_at as timestamp)  as posted_at,
+        date_trunc(date(safe_cast(posted_at as timestamp)), month) as posted_month,
         lower(concat(
             coalesce(preferred_raw, ''), ' ',
             coalesce(requirements_raw, ''), ' ',
@@ -31,7 +35,11 @@ select
     tier,
     salary_min,
     salary_max,
+    salary_type,
+    employment_type,
+    location,
     posted_at,
+    posted_month,
     array(
         select tag from unnest([
             struct('Python'                 as tag, r'python|パイソン'                            as pat),

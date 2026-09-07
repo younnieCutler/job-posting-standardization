@@ -21,3 +21,42 @@ models:
     columns:
       - name: source_platform
         data_tests: [unique, not_null]
+
+  - name: mart_overview
+    description: 리포트 헤더 스코어카드 (1행)
+  - name: mart_seniority_dist
+    description: 직무 분야 × 경력 수준별 공고 수
+  - name: mart_salary_format
+    description: 급여 표기 방식 분포 (정규화 대상)
+    columns:
+      - name: salary_type
+        data_tests: [unique, not_null]
+  - name: mart_company_activity
+    description: 채용 활발 기업 상위 20
+    columns:
+      - name: company_name
+        data_tests: [unique, not_null]
+  - name: mart_monthly_intake
+    description: 월별 공고 유입 (posted_at 있는 건만)
+    columns:
+      - name: posted_month
+        data_tests: [unique, not_null]
+
+  - name: stg_ats_postings
+    description: Public ATS 공고 정리 + 본문 기술 키워드 배열
+    columns:
+      - name: posting_id
+        data_tests: [unique, not_null]
+  - name: mart_ats_company
+    description: 공고 많이 관측된 기업 상위 20 (Public ATS)
+    columns:
+      - name: company_name
+        data_tests: [unique, not_null]
+  - name: mart_ats_location
+    description: 근무 지역별 공고 수 상위 20 (Public ATS)
+  - name: mart_ats_department
+    description: 부서별 공고 수 상위 20 (Public ATS)
+  - name: mart_ats_skill_demand
+    description: 본문 기술 키워드별 공고 수 (Public ATS)
+  - name: mart_ats_overview
+    description: Page 1 ATS 블록 스코어카드
